@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     cohere_rerank_model: str = "rerank-v4.0-fast"
 
     qdrant_url: str = "http://localhost:6333"
+    # Qdrant Cloud requires a key; a local container does not.
+    qdrant_api_key: SecretStr | None = None
     qdrant_collection: str = "agent_docs_v2"
     langfuse_public_key: str | None = None
     langfuse_secret_key: SecretStr | None = None
@@ -37,6 +39,11 @@ class Settings(BaseSettings):
     per_query_top_k: int = Field(default=20, ge=1)
     qdrant_hybrid_collection: str = "agent_docs_hybrid_v1"
     sparse_embedding_model: str = "Qdrant/bm25"
+
+    # Every served request spends OpenAI and Cohere credits, so the deployed API
+    # refuses to start without a token. Unset is allowed only for local CLI use.
+    api_token: SecretStr | None = None
+    api_max_question_chars: int = Field(default=500, ge=1)
 
 
 settings = Settings()

@@ -4,10 +4,10 @@ from langchain_qdrant import (
     QdrantVectorStore,
     RetrievalMode,
 )
-from qdrant_client import QdrantClient
 
 from src.config import settings
 from src.ingestion.chunker import chunk_documents
+from src.ingestion.ingest import get_qdrant_client
 from src.ingestion.loader import load_all_sources
 from src.rag.embeddings import (
     get_embeddings,
@@ -23,7 +23,7 @@ def main() -> None:
         "--recreate", action="store_true", help="Replace the existing hybrid collection"
     )
     args = parser.parse_args()
-    client = QdrantClient(url=settings.qdrant_url)
+    client = get_qdrant_client()
     try:
         exists = client.collection_exists(settings.qdrant_hybrid_collection)
     finally:
@@ -46,12 +46,15 @@ def main() -> None:
 
     print("Building hybrid Qdrant index...")
 
+    api_key = settings.qdrant_api_key
+
     QdrantVectorStore.from_documents(
         documents=chunks,
         embedding=get_embeddings(),
         sparse_embedding=get_sparse_embeddings(),
         retrieval_mode=RetrievalMode.HYBRID,
         url=settings.qdrant_url,
+        api_key=api_key.get_secret_value() if api_key else None,
         collection_name=(settings.qdrant_hybrid_collection),
         force_recreate=args.recreate,
     )

@@ -9,3 +9,4 @@ __pycache__/
 .idea/
 qdrant_storage/
 .DS_Store
+.cursor/
