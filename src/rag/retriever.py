@@ -34,13 +34,13 @@ def document_key(document: Document) -> str:
     return sha1(raw.encode("utf-8")).hexdigest()
 
 
-def _search_trace_input(query: str, k: int = 10) -> dict:
+def _search_trace_input(query: str, k: int = 10) -> dict[str, object]:
     return {"query": query, "k": k}
 
 
 def _hybrid_search_trace_input(
     query: str, k: int = 10, vendor: str | None = None
-) -> dict:
+) -> dict[str, object]:
     return {"query": query, "k": k, "vendor_scope": vendor}
 
 
@@ -57,7 +57,7 @@ def _vendor_filter(vendor: str | None) -> models.Filter | None:
     )
 
 
-def _search_trace_output(results: list[SearchResult]) -> list[dict]:
+def _search_trace_output(results: list[SearchResult]) -> list[dict[str, object]]:
     return [
         {
             "rank": rank,

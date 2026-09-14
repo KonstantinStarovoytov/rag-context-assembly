@@ -133,7 +133,10 @@ not by themselves prove an answer is complete.
 uv run python -m pytest tests -q
 uv run ruff check src evals tests
 uv run ruff format --check src evals tests
+uv run mypy
 ```
+
+Ruff is the flake8 check (`E`/`W`/`F`). mypy is strict on `src/`; eval scripts stay measurement code and are not type-checked.
 
 Unit tests cover routing, the original query reaching Cohere, the absence of semantic
 variants in the selected retrieval path, empty results, Hit/RR consistency and the

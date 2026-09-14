@@ -6,7 +6,7 @@ from src.config import settings
 
 def get_embeddings() -> OpenAIEmbeddings:
     return OpenAIEmbeddings(
-        api_key=settings.openai_api_key.get_secret_value(),
+        openai_api_key=settings.openai_api_key,
         model=settings.openai_embedding_model,
     )
 

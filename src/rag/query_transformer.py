@@ -1,3 +1,5 @@
+from typing import cast
+
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
@@ -33,7 +35,7 @@ class QueryTransformResult(BaseModel):
 class QueryTransformer:
     def __init__(self) -> None:
         model = ChatOpenAI(
-            api_key=settings.openai_api_key.get_secret_value(),
+            api_key=settings.openai_api_key,
             model=settings.openai_chat_model,
             temperature=0,
         )
@@ -57,18 +59,21 @@ class QueryTransformer:
         self,
         query: str,
     ) -> QueryTransformResult:
-        return self.model.invoke(
-            [
-                (
-                    "system",
-                    SYSTEM_PROMPT,
-                ),
-                (
-                    "human",
-                    query,
-                ),
-            ],
-            config=model_config("transform-query"),
+        return cast(
+            QueryTransformResult,
+            self.model.invoke(
+                [
+                    (
+                        "system",
+                        SYSTEM_PROMPT,
+                    ),
+                    (
+                        "human",
+                        query,
+                    ),
+                ],
+                config=model_config("transform-query"),
+            ),
         )
 
 
@@ -85,8 +90,8 @@ class RetrievalQueries(BaseModel):
             self.semantic_variant,
         ]
 
-        unique = []
-        seen = set()
+        unique: list[str] = []
+        seen: set[str] = set()
 
         for query in queries:
             value = query.strip()

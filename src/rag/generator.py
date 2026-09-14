@@ -39,7 +39,7 @@ def _get_heading(result: RerankResult) -> str:
 def _format_context(
     results: list[RerankResult],
 ) -> str:
-    parts = []
+    parts: list[str] = []
 
     for index, result in enumerate(
         results,
@@ -96,7 +96,7 @@ def generate_from_selected(
     # Pinned like every other call site, but this alone does not make answers
     # reproducible: repeated runs over an identical context still differ.
     model = ChatOpenAI(
-        api_key=(settings.openai_api_key.get_secret_value()),
+        api_key=settings.openai_api_key,
         model=settings.openai_chat_model,
         temperature=0,
     )
@@ -112,7 +112,7 @@ def generate_from_selected(
     else:
         answer = str(response.content)
 
-    sources = []
+    sources: list[AnswerSource] = []
 
     for index, result in enumerate(
         selected,

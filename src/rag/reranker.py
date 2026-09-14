@@ -20,11 +20,11 @@ class RerankResult:
 
 
 def _rerank_trace_input(
-    _self,
+    _self: object,
     query: str,
     results: list[SearchResult],
     top_n: int = 5,
-) -> dict:
+) -> dict[str, object]:
     return {
         "query": query,
         "top_n": top_n,
@@ -41,7 +41,7 @@ def _rerank_trace_input(
     }
 
 
-def _rerank_trace_output(results: list[RerankResult]) -> list[dict]:
+def _rerank_trace_output(results: list[RerankResult]) -> list[dict[str, object]]:
     return [
         {
             "source": result.document.metadata.get("source"),

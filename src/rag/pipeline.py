@@ -23,7 +23,7 @@ def _answer_trace_input(
 
 def _answer_trace_metadata(
     _query: str, *, strategy: RetrievalStrategy | None = None, iterative: bool = False
-) -> dict:
+) -> dict[str, object]:
     resolved = strategy or settings.retrieval_strategy
     return {
         "strategy": resolved,

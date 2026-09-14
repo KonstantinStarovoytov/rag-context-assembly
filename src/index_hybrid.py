@@ -23,14 +23,15 @@ def main() -> None:
         "--recreate", action="store_true", help="Replace the existing hybrid collection"
     )
     args = parser.parse_args()
-    with QdrantClient(url=settings.qdrant_url) as client:
-        if (
-            client.collection_exists(settings.qdrant_hybrid_collection)
-            and not args.recreate
-        ):
-            parser.error(
-                "Collection already exists. Use --recreate only for an intentional full rebuild."
-            )
+    client = QdrantClient(url=settings.qdrant_url)
+    try:
+        exists = client.collection_exists(settings.qdrant_hybrid_collection)
+    finally:
+        client.close()
+    if exists and not args.recreate:
+        parser.error(
+            "Collection already exists. Use --recreate only for an intentional full rebuild."
+        )
     print("Loading sources...")
 
     documents = load_all_sources()
