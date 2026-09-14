@@ -1,0 +1,76 @@
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import pytest
+
+from src.rag import pipeline
+
+
+def test_root_trace_uses_question_as_input_and_strategy_as_metadata():
+    assert (
+        pipeline._answer_trace_input(
+            "What is MCP?", strategy="hybrid-english", iterative=True
+        )
+        == "What is MCP?"
+    )
+    metadata = pipeline._answer_trace_metadata(
+        "What is MCP?", strategy="hybrid-english", iterative=True
+    )
+    assert metadata["strategy"] == "hybrid-english"
+    assert metadata["iterative"] is True
+    assert metadata["needs_english_translation"] is False
+    assert metadata["retrieval_top_k"] == pipeline.settings.retrieval_top_k
+
+
+@pytest.mark.parametrize("strategy", ["dense", "hybrid", "hybrid-english"])
+def test_routes_and_reranks_original_query(monkeypatch, strategy):
+    candidates = [object()]
+    ranked = [object()]
+    dense = Mock(return_value=candidates)
+    hybrid = Mock(return_value=candidates)
+    multi = Mock(return_value=candidates)
+    transform = Mock(return_value="English question")
+    rerank = Mock(return_value=ranked)
+    generate = Mock(return_value="answer")
+    monkeypatch.setattr(pipeline, "search", dense)
+    monkeypatch.setattr(pipeline, "search_hybrid", hybrid)
+    monkeypatch.setattr(pipeline, "search_queries_hybrid", multi)
+    monkeypatch.setattr(pipeline, "translate_query", transform)
+    monkeypatch.setattr(
+        pipeline, "CohereReranker", lambda: SimpleNamespace(rerank=rerank)
+    )
+    monkeypatch.setattr(pipeline, "generate_answer", generate)
+    assert (
+        pipeline.answer_question("  исходный вопрос  ", strategy=strategy) == "answer"
+    )
+    assert dense.call_count == (strategy == "dense")
+    if strategy == "dense":
+        assert hybrid.call_count == 0
+        assert multi.call_count == 0
+        transform.assert_not_called()
+    else:
+        assert hybrid.call_count == 0
+        assert multi.call_count == 1
+        transform.assert_called_once()
+        assert multi.call_args.kwargs["queries"] == [
+            "исходный вопрос",
+            "English question",
+        ]
+    assert rerank.call_args.kwargs["query"] == "исходный вопрос"
+    assert rerank.call_args.kwargs["results"] is candidates
+    assert generate.call_args.kwargs["results"] is ranked
+
+
+def test_empty_candidates_skip_reranker(monkeypatch):
+    monkeypatch.setattr(pipeline, "search_hybrid", lambda **kwargs: [])
+    reranker = Mock(side_effect=AssertionError("Cohere must not be initialized"))
+    monkeypatch.setattr(pipeline, "CohereReranker", reranker)
+    result = pipeline.answer_question("question", strategy="hybrid")
+    assert result.sources == []
+    reranker.assert_not_called()
+
+
+@pytest.mark.parametrize("query,strategy", [("  ", "hybrid"), ("query", "unknown")])
+def test_invalid_input(query, strategy):
+    with pytest.raises(ValueError):
+        pipeline.answer_question(query, strategy=strategy)
