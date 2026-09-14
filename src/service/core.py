@@ -83,6 +83,8 @@ def search(question: str, *, limit: int | None = None) -> list[Passage]:
     k = limit if limit is not None else settings.retrieval_top_k
     if k < 1:
         raise QuestionRejected("limit must be positive")
+    if k > 50:
+        raise QuestionRejected("limit must be at most 50")
 
     passages = []
     for rank, result in enumerate(search_hybrid(query=question, k=k), start=1):

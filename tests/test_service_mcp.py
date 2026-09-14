@@ -69,6 +69,40 @@ async def test_client_sees_both_tools(stub_pipeline: None) -> None:
 
 
 @pytest.mark.anyio
+async def test_tools_advertise_runlayer_metadata(stub_pipeline: None) -> None:
+    """Title, annotations, field docs and output schema must be on the wire."""
+    async with Client(build_mcp_server()) as client:
+        tools = {tool.name: tool for tool in (await client.list_tools()).tools}
+
+    ask = tools["ask_docs"]
+    search = tools["search_docs"]
+
+    assert ask.title == "Ask official agent docs"
+    assert search.title == "Search official agent docs"
+    assert ask.annotations is not None
+    assert ask.annotations.read_only_hint is True
+    assert ask.annotations.destructive_hint is False
+    assert ask.annotations.idempotent_hint is True
+    assert ask.annotations.open_world_hint is True
+    assert "Do not use" in (ask.description or "")
+    assert "Errors:" in (search.description or "")
+
+    question = ask.input_schema["properties"]["question"]
+    assert question["minLength"] == 1
+    assert question["maxLength"] == 500
+    assert "description" in question
+    assert "description" in ask.input_schema["properties"]["iterative"]
+
+    limit = search.input_schema["properties"]["limit"]
+    assert limit["minimum"] == 1
+    assert limit["maximum"] == 50
+    assert ask.output_schema is not None
+    assert "answer" in ask.output_schema["properties"]
+    assert search.output_schema is not None
+    assert "passages" in search.output_schema["properties"]
+
+
+@pytest.mark.anyio
 async def test_ask_docs_returns_answer_with_sources(stub_pipeline: None) -> None:
     async with Client(build_mcp_server()) as client:
         result = await client.call_tool("ask_docs", {"question": "How do skills work?"})

@@ -26,7 +26,7 @@ PUBLIC_PATHS = frozenset({"/health", "/docs", "/openapi.json", "/redoc"})
 
 
 class AskRequest(BaseModel):
-    question: str = Field(min_length=1)
+    question: str = Field(min_length=1, max_length=settings.api_max_question_chars)
     strategy: RetrievalStrategy | None = None
     iterative: bool = False
 
@@ -48,7 +48,7 @@ class AskResponse(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=settings.api_max_question_chars)
     limit: int | None = Field(default=None, ge=1, le=50)
 
 
