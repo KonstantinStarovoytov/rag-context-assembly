@@ -1,0 +1,42 @@
+TRACE: https://cloud.langfuse.com/project/cmtogb8i90jw1ad0i9i6g2tae/traces/8cd66eee50f3663a46b1676bb106653d
+
+ANSWER
+================================================================================
+An MCP server exposes tools as executable server primitives that clients can discover and invoke.
+
+The typical flow is:
+
+1. **Declare tool support during server discovery.** Servers advertise their supported capabilities through the `server/discover` request. [2]
+2. **List available tools.** The client sends `tools/list` to discover the server’s currently available tools. Listings can be dynamic. [2]
+3. **Invoke a tool.** After discovery, the client executes a selected tool with `tools/call`. Tools can perform actions such as file operations, API calls, or database queries. [2]
+4. **Receive updates when tools change.** If the available tools are added or modified, the server can send tool-update notifications. Clients must opt in by opening a `subscriptions/listen` stream for the relevant notification types. [1]
+
+MCP uses JSON-RPC 2.0 for these client-server requests and responses. [2] For example, a server might expose `get_alerts` and `get_forecast` as tools. [5]
+
+SOURCES
+================================================================================
+[1] Architecture overview
+    Architecture overview > Concepts of MCP > Data Layer Protocol
+    https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture.md
+    rerank_score=0.9449
+
+[2] Architecture overview
+    Architecture overview > Concepts of MCP > Data Layer Protocol
+    https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture.md
+    rerank_score=0.9355
+
+[3] Customization
+    Customization > MCP
+    https://learn.chatgpt.com/docs/customization/overview.md
+    rerank_score=0.9192
+
+[4] Connect Claude Code to tools via MCP
+    Connect Claude Code to tools via MCP > Use Claude Code as an MCP server
+    https://code.claude.com/docs/en/mcp.md
+    rerank_score=0.8802
+
+[5] Build an MCP server
+    Build an MCP server > What we'll be building
+    https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server.md
+    rerank_score=0.8619
+
