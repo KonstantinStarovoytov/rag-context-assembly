@@ -6,3 +6,14 @@ services:
       - "6334:6334"
     volumes:
       - ./qdrant_storage:/qdrant/storage
+
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file: .env
+    environment:
+      # Reach the sibling container, not the host loopback.
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      - qdrant

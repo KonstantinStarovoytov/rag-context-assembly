@@ -32,7 +32,8 @@ Section 9 of the findings document lists the gaps in full.
 
 Install dependencies with `uv sync --locked` and fill `.env` from `.env.example`.
 OpenAI and Cohere credentials plus a populated Qdrant collection are required.
-Langfuse is only needed for `TRACING_ENABLED=true` or remote prompt fetch.
+Langfuse is only needed for `TRACING_ENABLED=true` or remote prompt fetch, and
+`API_TOKEN` only for serving over HTTP.
 
 ```bash
 docker compose up -d
@@ -49,6 +50,95 @@ uv run python -m src.index_hybrid --recreate
 ```
 
 This is still a full rebuild, not incremental synchronisation.
+
+## Serving: HTTP endpoint and MCP server
+
+The same pipeline is exposed two ways from one process, so a REST caller and an
+MCP client cannot drift apart: both go through `src/service/core.py`.
+
+| Path | Method | Purpose |
+| --- | --- | --- |
+| `/health` | GET | Liveness. The only unauthenticated route; touches no paid model. |
+| `/ask` | POST | Grounded answer with citations and, when tracing is on, a trace URL. |
+| `/search` | POST | Retrieval only, for callers that want to read the passages. |
+| `/mcp` | POST | MCP streamable HTTP transport, tools `ask_docs` and `search_docs`. |
+
+`API_TOKEN` is required: the process refuses to start without it, because every
+request spends OpenAI and Cohere credits. Send it as `Authorization: Bearer …`.
+
+```bash
+docker compose up -d --build     # Qdrant plus the API on :8080
+curl localhost:8080/health
+curl -X POST localhost:8080/ask \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"question": "How do skills work?"}'
+```
+
+### Connecting as MCP
+
+Remote, against the deployed URL — this is the same server the `/ask` endpoint
+uses, so answers are identical:
+
+```json
+{
+  "mcpServers": {
+    "agent-docs": {
+      "url": "https://<app>.fly.dev/mcp/",
+      "headers": { "Authorization": "Bearer <API_TOKEN>" }
+    }
+  }
+}
+```
+
+Local, over stdio, with no HTTP server and no token:
+
+```json
+{
+  "mcpServers": {
+    "agent-docs": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/rag-context-assembly", "rag-mcp"]
+    }
+  }
+}
+```
+
+`ask_docs(question, iterative=False)` returns the answer with its sources.
+`search_docs(query, limit)` returns ranked passages without generation, which is
+cheaper when the calling agent wants to reason over the documentation itself.
+
+## Deploying to Fly.io
+
+The machine is stateless; the index lives in Qdrant Cloud, whose free 1 GB tier
+holds this corpus comfortably. That keeps the deployment portable and means a
+restart cannot lose the index.
+
+```bash
+# 1. Point the local tooling at Qdrant Cloud and build the index there.
+#    QDRANT_URL=https://<cluster>.qdrant.io:6333 and QDRANT_API_KEY=… in .env
+uv run python -m src.index_hybrid --recreate
+
+# 2. Create the app and set secrets (never in fly.toml, which is committed).
+fly launch --no-deploy
+fly secrets set \
+  OPENAI_API_KEY=… COHERE_API_KEY=… \
+  QDRANT_URL=https://<cluster>.qdrant.io:6333 QDRANT_API_KEY=… \
+  API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+
+# 3. Deploy and verify.
+fly deploy
+curl https://<app>.fly.dev/health
+```
+
+Langfuse tracing is off in `fly.toml`. To trace production traffic, set
+`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` as secrets and
+`TRACING_ENABLED=true`.
+
+Two deployment details worth knowing: the image pre-downloads the BM25 encoder
+so the first question does not pay for it, and `min_machines_running = 1` keeps
+one machine warm because scaling to zero drops in-flight MCP sessions and adds a
+model-loading cold start to the next question.
 
 ## Configuration
 
@@ -99,6 +189,7 @@ uv run python -m src.prompts.publish
 - `src/ingestion/` — loading, chunking, index population.
 - `src/rag/` — retrieval, fusion, rerank, orchestration, generation.
 - `src/prompts/` — local fallback templates and the versioned Langfuse prompt adapter.
+- `src/service/` — the shared request handler, the FastAPI app and the MCP server.
 - `src/ask.py` — the main CLI; `search*` and `compare_rerank` are diagnostics.
 - `evals/` — datasets, experiment runners and offline probes.
 - `tests/` — unit tests, no external API calls.

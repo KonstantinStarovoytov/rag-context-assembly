@@ -1,0 +1,38 @@
+app = "rag-context-assembly"
+primary_region = "fra"
+
+[build]
+
+[env]
+  PORT = "8080"
+  # Qdrant Cloud holds the index; the machine keeps no state.
+  QDRANT_COLLECTION = "agent_docs_v2"
+  QDRANT_HYBRID_COLLECTION = "agent_docs_hybrid_v1"
+  RETRIEVAL_STRATEGY = "hybrid"
+  RETRIEVAL_TOP_K = "10"
+  PER_QUERY_TOP_K = "20"
+  GENERATION_TOP_K = "8"
+  TRANSLATE_NON_ENGLISH = "true"
+  TRACING_ENABLED = "false"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # Scaling to zero would drop in-flight MCP sessions; one warm machine avoids
+  # paying the model-loading cold start on every first question.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  # The sparse BM25 encoder and onnxruntime need headroom; 512 MB is not enough.
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
