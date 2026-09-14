@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # refuses to start without a token. Unset is allowed only for local CLI use.
     api_token: SecretStr | None = None
     api_max_question_chars: int = Field(default=500, ge=1)
+    # The MCP transport rejects unknown Host headers to block DNS rebinding, so
+    # the public hostname must be declared. Empty means localhost only.
+    api_allowed_hosts: str = ""
 
 
 settings = Settings()

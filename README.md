@@ -4,25 +4,26 @@ A hybrid RAG system over the official Claude, Cursor, Codex and MCP documentatio
 built together with the evaluation harness needed to tell whether each change actually
 helped.
 
-Runtime path: `query → (translation, only for RU/PL) → hybrid dense + BM25 with RRF →
-Cohere rerank → section-level de-duplication → grounded generation with citations`.
+Runtime path: `query → (translation, only for RU/PL) → hybrid dense + BM25 with RRF → Cohere rerank → section-level de-duplication → grounded generation with citations`.
 
 The interesting part of the project is not the pipeline but what measuring it showed:
 **for multi-aspect questions the bottleneck is context assembly, not retrieval.** Among
 20 reranked candidates the required evidence is present 0.948 of the time; after
 selecting the final context it is present 0.646 of the time. Full analysis, with the
-experiments behind every number, is in [`docs/rag-findings.md`](docs/rag-findings.md).
+experiments behind every number, is in `[docs/rag-findings.md](docs/rag-findings.md)`.
 
 ## Results
 
-| Finding | Measurement |
-| --- | --- |
-| Coverage is lost in selection, not retrieval | 0.948 in candidate pool → 0.646 in context |
-| `generation_top_k` 5 → 8 | complete evidence coverage 0.250 → 0.750, faithfulness 0.938 → 0.956 |
-| A larger candidate pool can hurt | pool 10 → 20 raises the oracle ceiling 0.812 → 0.875 but drops delivered coverage 0.750 → 0.500 |
-| Bounded two-hop retrieval | no gain on 16 multi-aspect cases; the right remedy for 2 of them, so it stays opt-in |
-| Aspect-aware set selection (offline) | complete coverage 0.500 → 0.688 on a frozen candidate pool |
-| Hybrid RRF was non-deterministic | tied scores made the cut at `k` arbitrary; fixed with a stable tie-break key |
+
+| Finding                                      | Measurement                                                                                     |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Coverage is lost in selection, not retrieval | 0.948 in candidate pool → 0.646 in context                                                      |
+| `generation_top_k` 5 → 8                     | complete evidence coverage 0.250 → 0.750, faithfulness 0.938 → 0.956                            |
+| A larger candidate pool can hurt             | pool 10 → 20 raises the oracle ceiling 0.812 → 0.875 but drops delivered coverage 0.750 → 0.500 |
+| Bounded two-hop retrieval                    | no gain on 16 multi-aspect cases; the right remedy for 2 of them, so it stays opt-in            |
+| Aspect-aware set selection (offline)         | complete coverage 0.500 → 0.688 on a frozen candidate pool                                      |
+| Hybrid RRF was non-deterministic             | tied scores made the cut at `k` arbitrary; fixed with a stable tie-break key                    |
+
 
 Caveats belong with the numbers: N = 16 with author-written ground truth, answer quality
 is scored by an LLM judge, and the generator is not reproducible even at temperature 0.
@@ -56,12 +57,14 @@ This is still a full rebuild, not incremental synchronisation.
 The same pipeline is exposed two ways from one process, so a REST caller and an
 MCP client cannot drift apart: both go through `src/service/core.py`.
 
-| Path | Method | Purpose |
-| --- | --- | --- |
-| `/health` | GET | Liveness. The only unauthenticated route; touches no paid model. |
-| `/ask` | POST | Grounded answer with citations and, when tracing is on, a trace URL. |
-| `/search` | POST | Retrieval only, for callers that want to read the passages. |
-| `/mcp` | POST | MCP streamable HTTP transport, tools `ask_docs` and `search_docs`. |
+
+| Path      | Method | Purpose                                                              |
+| --------- | ------ | -------------------------------------------------------------------- |
+| `/health` | GET    | Liveness. The only unauthenticated route; touches no paid model.     |
+| `/ask`    | POST   | Grounded answer with citations and, when tracing is on, a trace URL. |
+| `/search` | POST   | Retrieval only, for callers that want to read the passages.          |
+| `/mcp`    | POST   | MCP streamable HTTP transport, tools `ask_docs` and `search_docs`.   |
+
 
 `API_TOKEN` is required: the process refuses to start without it, because every
 request spends OpenAI and Cohere credits. Send it as `Authorization: Bearer …`.
@@ -74,6 +77,8 @@ curl -X POST localhost:8080/ask \
   -H 'content-type: application/json' \
   -d '{"question": "How do skills work?"}'
 ```
+
+
 
 ### Connecting as MCP
 
@@ -108,7 +113,7 @@ Local, over stdio, with no HTTP server and no token:
 `search_docs(query, limit)` returns ranked passages without generation, which is
 cheaper when the calling agent wants to reason over the documentation itself.
 
-## Deploying to Fly.io
+## Deploying to [Fly.io](http://Fly.io)
 
 The machine is stateless; the index lives in Qdrant Cloud, whose free 1 GB tier
 holds this corpus comfortably. That keeps the deployment portable and means a
@@ -121,7 +126,7 @@ uv run python -m src.index_hybrid --recreate
 
 # 2. Create the app and set secrets (never in fly.toml, which is committed).
 fly launch --no-deploy
-fly secrets set \
+fly secrets szet \
   OPENAI_API_KEY=… COHERE_API_KEY=… \
   QDRANT_URL=https://<cluster>.qdrant.io:6333 QDRANT_API_KEY=… \
   API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
@@ -135,10 +140,13 @@ Langfuse tracing is off in `fly.toml`. To trace production traffic, set
 `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` as secrets and
 `TRACING_ENABLED=true`.
 
-Two deployment details worth knowing: the image pre-downloads the BM25 encoder
-so the first question does not pay for it, and `min_machines_running = 1` keeps
-one machine warm because scaling to zero drops in-flight MCP sessions and adds a
-model-loading cold start to the next question.
+Three deployment details worth knowing. The image pre-downloads the BM25 encoder
+so the first question does not pay for it. `min_machines_running = 1` keeps one
+machine warm, because scaling to zero drops in-flight MCP sessions and adds a
+model-loading cold start to the next question. And `API_ALLOWED_HOSTS` must name
+the public domain: the MCP transport blocks DNS rebinding by rejecting unknown
+`Host` headers with 421, so a deployment behind a real domain that is not listed
+answers 421 to every MCP call while `/health` and `/ask` still work.
 
 ## Configuration
 
@@ -147,12 +155,14 @@ Set in `.env`: `RETRIEVAL_STRATEGY=hybrid`, `TRANSLATE_NON_ENGLISH=true`,
 The CLI strategy overrides `.env`.
 
 - `hybrid` translates the query to English only when it contains Cyrillic or Polish
-  characters. `hybrid-english` always adds a faithful translation, for ablations.
-  Semantic paraphrase is not used at runtime: an offline A/B/C/D over 48 cases showed
-  faithful English lifts Hit@5 from 0.958 to 1.000 while rewriting breaks an English case.
+characters. `hybrid-english` always adds a faithful translation, for ablations.
+Semantic paraphrase is not used at runtime: an offline A/B/C/D over 48 cases showed
+faithful English lifts Hit@5 from 0.958 to 1.000 while rewriting breaks an English case.
 - Before generation, one URL plus heading may occupy at most two context slots; if no
-  other sections exist, the top-k is refilled from the original rerank order.
+other sections exist, the top-k is refilled from the original rerank order.
 - `GENERATION_TOP_K=8` is a measured default, not a guess — see the results table.
+
+
 
 ## Two-hop retrieval (opt-in)
 
@@ -184,6 +194,8 @@ versions via `ANSWER_PROMPT_VERSION`, `TRANSLATE_PROMPT_VERSION`,
 uv run python -m src.prompts.publish
 ```
 
+
+
 ## Layout
 
 - `src/ingestion/` — loading, chunking, index population.
@@ -195,6 +207,8 @@ uv run python -m src.prompts.publish
 - `tests/` — unit tests, no external API calls.
 - `docs/rag-findings.md` — the experiment log and architectural conclusions.
 - `docs/engineering-audit.md` — verified state, remaining gaps, planned experiments.
+
+
 
 ## Evaluation
 
@@ -215,7 +229,7 @@ uv run python -m evals.run_evidence_coverage_experiment
 
 Selection strategies can be compared offline against a frozen candidate pool, which
 avoids paying for retrieval and reranking on every iteration — see
-[`evals/FROZEN_SELECTION.md`](evals/FROZEN_SELECTION.md).
+`[evals/FROZEN_SELECTION.md](evals/FROZEN_SELECTION.md)`.
 
 The judge is a custom LLM evaluator, not a Ragas metric; its scores need review and do
 not by themselves prove an answer is complete.

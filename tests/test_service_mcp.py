@@ -161,6 +161,59 @@ async def test_mounted_http_transport_serves_tools(
     assert payload["answer"] == "Answer to How do hooks work? [1]."
 
 
+async def _mcp_post(host: str, body: dict[str, Any]) -> int:
+    """POST to the mounted transport with a chosen Host header."""
+    app = app_module.create_app()
+    transport = httpx2.ASGITransport(app=app)
+    async with app.router.lifespan_context(app):
+        async with httpx2.AsyncClient(transport=transport) as http_client:
+            response = await http_client.post(
+                f"http://{host}/mcp/",
+                json=body,
+                headers={
+                    "Authorization": f"Bearer {TOKEN}",
+                    "Accept": "application/json, text/event-stream",
+                    "Content-Type": "application/json",
+                },
+            )
+    return response.status_code
+
+
+INITIALIZE = {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {},
+        "clientInfo": {"name": "test", "version": "1"},
+    },
+}
+
+
+@pytest.mark.anyio
+async def test_declared_public_host_is_accepted(
+    stub_pipeline: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A deployment behind a domain must not answer 421 to its own hostname.
+
+    The MCP transport rejects unknown Host headers to block DNS rebinding, so
+    the public hostname has to be declared in API_ALLOWED_HOSTS.
+    """
+    monkeypatch.setattr(settings, "api_token", SecretStr(TOKEN))
+    monkeypatch.setattr(settings, "api_allowed_hosts", "docs.example.test")
+
+    assert await _mcp_post("docs.example.test", INITIALIZE) == 200
+
+
+@pytest.mark.anyio
+async def test_undeclared_host_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "api_token", SecretStr(TOKEN))
+    monkeypatch.setattr(settings, "api_allowed_hosts", "docs.example.test")
+
+    assert await _mcp_post("attacker.test", INITIALIZE) == 421
+
+
 @pytest.mark.anyio
 async def test_mounted_http_transport_rejects_missing_token(served_app: str) -> None:
     async with httpx2.AsyncClient() as http_client:

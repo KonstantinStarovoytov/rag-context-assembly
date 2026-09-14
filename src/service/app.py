@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel, Field
 from starlette.requests import Request
 from starlette.responses import Response
@@ -64,6 +65,40 @@ class SearchResponse(BaseModel):
     passages: list[PassageResponse]
 
 
+def _allowed_hosts() -> list[str]:
+    return [
+        host.strip() for host in settings.api_allowed_hosts.split(",") if host.strip()
+    ]
+
+
+LOCAL_HOSTS = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+LOCAL_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+
+
+def _transport_security() -> TransportSecuritySettings | None:
+    """Declare the public hostname to the MCP transport.
+
+    It answers 421 to unknown `Host` headers to block DNS rebinding, so a
+    deployment behind a real domain must name that domain. Returning None keeps
+    the library default, which allows localhost only.
+    """
+    hosts = _allowed_hosts()
+    if not hosts:
+        return None
+
+    allowed_hosts = list(LOCAL_HOSTS)
+    allowed_origins = list(LOCAL_ORIGINS)
+    for host in hosts:
+        # Fly sends the bare domain; a proxy may append a port.
+        allowed_hosts += [host, f"{host}:*"]
+        allowed_origins += [f"https://{host}", f"https://{host}:*"]
+
+    return TransportSecuritySettings(
+        allowed_hosts=allowed_hosts,
+        allowed_origins=allowed_origins,
+    )
+
+
 def create_app() -> FastAPI:
     """Build a fresh app, including a fresh MCP session manager.
 
@@ -72,7 +107,9 @@ def create_app() -> FastAPI:
     """
     # Stateless: no session state to lose across restarts or extra machines.
     mcp_app = build_mcp_server().streamable_http_app(
-        streamable_http_path="/", stateless_http=True
+        streamable_http_path="/",
+        stateless_http=True,
+        transport_security=_transport_security(),
     )
 
     @asynccontextmanager
