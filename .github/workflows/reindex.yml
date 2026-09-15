@@ -32,7 +32,6 @@ jobs:
           set -o pipefail
           uv run python -m src.reindex 2>&1 | tee reindex.log
       - name: Commit manifest
-        if: always()
         run: |
           if git diff --quiet -- data/index-manifest.json && [ -z "$(git ls-files --others --exclude-standard data)" ]; then
             echo "manifest unchanged"; exit 0
