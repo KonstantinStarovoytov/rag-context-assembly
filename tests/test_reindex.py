@@ -96,12 +96,23 @@ def test_apply_keeps_missing_documents_in_manifest() -> None:
     assert updated.indexed_at == "2026-09-01"  # nothing was re-indexed
 
 
-def test_smoke_check_reports_intents_without_a_matching_hit() -> None:
+def test_smoke_check_supports_source_and_heading_expectations() -> None:
     intents: list[dict[str, Any]] = [
         {
-            "id": "ok",
+            "id": "source-ok",
             "relevant": [{"vendor": "cursor", "source_contains": "rules"}],
             "variants": {"clean_en": "cursor rules"},
+        },
+        {
+            "id": "heading-ok",
+            "relevant": [
+                {
+                    "vendor": "anthropic",
+                    "title": "Extend Claude Code",
+                    "heading_contains": "Compare similar features",
+                }
+            ],
+            "variants": {"clean_en": "claude reusable workflow"},
         },
         {
             "id": "miss",
@@ -111,7 +122,27 @@ def test_smoke_check_reports_intents_without_a_matching_hit() -> None:
     ]
 
     def search(query: str) -> list[dict[str, str]]:
-        return [{"vendor": "cursor", "source": "https://cursor.com/docs/rules.md"}]
+        if query == "claude reusable workflow":
+            return [
+                {
+                    "vendor": "anthropic",
+                    "source": "https://code.claude.com/docs/en/features-overview.md",
+                    "title": "Extend Claude Code",
+                    "h1": "Extend Claude Code",
+                    "h2": "Compare similar features",
+                    "h3": "",
+                }
+            ]
+        return [
+            {
+                "vendor": "cursor",
+                "source": "https://cursor.com/docs/rules.md",
+                "title": "",
+                "h1": "",
+                "h2": "",
+                "h3": "",
+            }
+        ]
 
     assert reindex.smoke_failures(intents, search) == ["miss"]
 

@@ -128,20 +128,40 @@ def apply(
     return Manifest(indexed_at=indexed_at, documents=documents)
 
 
+def _matches_expected(hit: dict[str, str], expected: dict[str, str]) -> bool:
+    """Return whether a search hit satisfies one expected retrieval target."""
+    if hit.get("vendor") != expected["vendor"]:
+        return False
+
+    source_contains = expected.get("source_contains")
+    if source_contains and source_contains not in hit.get("source", ""):
+        return False
+
+    title = expected.get("title")
+    if title and title != hit.get("title", ""):
+        return False
+
+    heading_contains = expected.get("heading_contains")
+    if heading_contains:
+        headings = " > ".join(
+            hit.get(key, "") for key in ("h1", "h2", "h3") if hit.get(key)
+        )
+        if heading_contains not in headings:
+            return False
+
+    return True
+
+
 def smoke_failures(
     intents: list[dict[str, Any]],
     search: Callable[[str], list[dict[str, str]]],
 ) -> list[str]:
-    """Intent ids whose expected page is not among the top hits."""
+    """Intent ids whose expected page/section is not among the top hits."""
     failures: list[str] = []
     for intent in intents:
         hits = search(intent["variants"]["clean_en"])
         for expected in intent["relevant"]:
-            if not any(
-                hit["vendor"] == expected["vendor"]
-                and expected["source_contains"] in hit["source"]
-                for hit in hits
-            ):
+            if not any(_matches_expected(hit, expected) for hit in hits):
                 failures.append(intent["id"])
                 break
     return failures
@@ -223,6 +243,10 @@ def _search(query: str) -> list[dict[str, str]]:
         {
             "vendor": str(r.document.metadata.get("vendor", "")),
             "source": str(r.document.metadata.get("source", "")),
+            "title": str(r.document.metadata.get("title", "")),
+            "h1": str(r.document.metadata.get("h1", "")),
+            "h2": str(r.document.metadata.get("h2", "")),
+            "h3": str(r.document.metadata.get("h3", "")),
         }
         for r in search_hybrid(query=query, k=SMOKE_K)
     ]
