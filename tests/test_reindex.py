@@ -96,6 +96,32 @@ def test_apply_keeps_missing_documents_in_manifest() -> None:
     assert updated.indexed_at == "2026-09-01"  # nothing was re-indexed
 
 
+def test_smoke_passes_when_any_relevant_target_is_hit() -> None:
+    """`relevant` lists alternatives, as the evals' hit@k treats it."""
+    intents: list[dict[str, Any]] = [
+        {
+            "id": "either",
+            "relevant": [
+                {"vendor": "anthropic", "source_contains": "skills"},
+                {"vendor": "anthropic", "heading_contains": "compare similar"},
+            ],
+            "variants": {"clean_en": "q"},
+        }
+    ]
+    hits = [
+        {
+            "vendor": "anthropic",
+            "source": "https://code.claude.com/docs/en/features-overview.md",
+            "title": "Extend Claude Code",
+            "h1": "Extend Claude Code",
+            "h2": "Compare Similar Features",
+            "h3": "",
+        }
+    ]
+
+    assert reindex.smoke_failures(intents, lambda _q: hits) == []
+
+
 def test_smoke_check_supports_source_and_heading_expectations() -> None:
     intents: list[dict[str, Any]] = [
         {
@@ -174,3 +200,10 @@ def test_ensure_payload_indexes_covers_every_filtered_key() -> None:
     reindex.ensure_payload_indexes(FakeClient(), "col")  # type: ignore[arg-type]
 
     assert set(created) == {("col", "metadata.source"), ("col", "metadata.vendor")}
+
+
+def test_orphans_are_indexed_sources_no_longer_fetched() -> None:
+    indexed = {"u/keep", "u/sdk-page", "u/other-old"}
+    documents = [_doc("u/keep", "k"), _doc("u/new", "n")]
+
+    assert reindex.orphans(indexed, documents) == ["u/other-old", "u/sdk-page"]

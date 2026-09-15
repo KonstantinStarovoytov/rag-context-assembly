@@ -32,6 +32,9 @@ jobs:
           set -o pipefail
           uv run python -m src.reindex 2>&1 | tee reindex.log
       - name: Commit manifest
+        # Even after a failed smoke check: the index was already rewritten,
+        # and the manifest must say so or the next run re-embeds it all again.
+        if: always()
         run: |
           if git diff --quiet -- data/index-manifest.json && [ -z "$(git ls-files --others --exclude-standard data)" ]; then
             echo "manifest unchanged"; exit 0

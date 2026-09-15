@@ -59,11 +59,39 @@ def _extract_links(
     return [(title, url) for url, title in links.items()]
 
 
-def _should_include(
-    url: str,
-    config: SourceConfig,
-) -> bool:
-    return any(pattern in url for pattern in config.include)
+class SourceSelectionError(RuntimeError):
+    """An include pattern matched zero or several pages; a human must look."""
+
+
+def newest_version(links: list[tuple[str, str]], prefix: str) -> str:
+    """Newest `<prefix>YYYY-MM-DD/` segment present in the index."""
+    dated = re.compile(re.escape(prefix) + r"(\d{4}-\d{2}-\d{2})/")
+    versions = {m.group(1) for _, url in links if (m := dated.search(url))}
+    if not versions:
+        raise SourceSelectionError(f"no dated versions under {prefix!r}")
+    return max(versions)
+
+
+def select_links(
+    links: list[tuple[str, str]], config: SourceConfig
+) -> list[tuple[str, str]]:
+    """One page per include pattern, in pattern order."""
+    patterns = config.include
+    if config.versioned_prefix is not None:
+        version = newest_version(links, config.versioned_prefix)
+        patterns = tuple(
+            f"{config.versioned_prefix}{version}{pattern}" for pattern in patterns
+        )
+    selected: list[tuple[str, str]] = []
+    for pattern in patterns:
+        hits = [(title, url) for title, url in links if url.endswith(pattern)]
+        if len(hits) != 1:
+            raise SourceSelectionError(
+                f"{config.product}: pattern {pattern!r} matched {len(hits)} pages "
+                f"in {config.index_url}: {[url for _, url in hits]}"
+            )
+        selected.append(hits[0])
+    return selected
 
 
 def load_source(
@@ -78,16 +106,7 @@ def load_source(
         index_response = client.get(config.index_url)
         index_response.raise_for_status()
 
-        links = _extract_links(index_response.text)
-
-        selected_links = [
-            (title, url)
-            for title, url in links
-            if _should_include(
-                url,
-                config,
-            )
-        ]
+        selected_links = select_links(_extract_links(index_response.text), config)
 
         print(f"{config.vendor}/{config.product}: {len(selected_links)} pages")
 

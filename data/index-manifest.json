@@ -1,25 +1,20 @@
 {
   "indexed_at": "2026-09-15",
   "documents": {
-    "https://code.claude.com/docs/en/agent-sdk/mcp.md": {
-      "sha256": "c6c92f6d55a03b8c0dd198833b29885a7827441d834db438b83b0e33b37c38a8",
-      "chunks": 29,
-      "title": "Connect to external tools with MCP"
-    },
-    "https://code.claude.com/docs/en/agent-sdk/plugins.md": {
-      "sha256": "c0f79d1b6ed8e32def8695828d264110c709300854177c4b1bb524bb1e0a06d6",
-      "chunks": 12,
-      "title": "Plugins in the SDK"
-    },
-    "https://code.claude.com/docs/en/agent-sdk/skills.md": {
-      "sha256": "a7027fa28304e8a2c44ab86a09b061b4ea235186568b9e99d59d0357afae8e78",
-      "chunks": 23,
-      "title": "Extend agents with skills"
-    },
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "fad6cc0b1ebf429fda686679b9f6472a58aeaae9efed344c1e43297e32c8d536",
       "chunks": 18,
       "title": "Extend Claude Code"
+    },
+    "https://code.claude.com/docs/en/hooks-guide.md": {
+      "sha256": "e388b1bb4c83d9773396a13ad0c70978b562ea40aefd297045475bbe5e7af41c",
+      "chunks": 43,
+      "title": "Automate actions with hooks"
+    },
+    "https://code.claude.com/docs/en/hooks.md": {
+      "sha256": "0dc5622c49bb817a53c78a974bb8e1664a30204300b0dbb3ba92a998007b4963",
+      "chunks": 152,
+      "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
       "sha256": "ade771958f6052478788d24253254aa6c6e6c54a510da51681785f32c774740f",
