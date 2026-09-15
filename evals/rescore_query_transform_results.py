@@ -3,6 +3,8 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
 
+from functools import cache
+
 from langfuse import Langfuse
 
 from src.config import settings
@@ -33,11 +35,16 @@ QUERY_TYPES = (
 )
 
 
-langfuse = Langfuse(
-    public_key=settings.langfuse_public_key,
-    secret_key=(settings.langfuse_secret_key.get_secret_value()),
-    base_url=settings.langfuse_base_url,
-)
+# Built on first use, not at import: tests import the constants from this
+# module and must not need Langfuse credentials.
+@cache
+def langfuse_client() -> Langfuse:
+    assert settings.langfuse_secret_key is not None, "LANGFUSE_SECRET_KEY is unset"
+    return Langfuse(
+        public_key=settings.langfuse_public_key,
+        secret_key=settings.langfuse_secret_key.get_secret_value(),
+        base_url=settings.langfuse_base_url,
+    )
 
 
 CORRECTED_MCP_TOOLS_RELEVANT = [
@@ -104,7 +111,7 @@ def fetch_experiment_items(
         if cursor:
             kwargs["cursor"] = cursor
 
-        response = langfuse.api.experiments.list_items(**kwargs)
+        response = langfuse_client().api.experiments.list_items(**kwargs)
 
         items.extend(response.data)
 
@@ -127,7 +134,7 @@ def fetch_experiment_items(
 
 
 def build_dataset_index() -> dict[str, dict]:
-    dataset = langfuse.get_dataset(DATASET_NAME)
+    dataset = langfuse_client().get_dataset(DATASET_NAME)
 
     index = {}
 
