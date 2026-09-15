@@ -129,3 +129,17 @@ def test_manifest_round_trips_through_json(tmp_path: Any) -> None:
     assert reindex.load_manifest(tmp_path / "absent.json") == reindex.Manifest(
         indexed_at=None, documents={}
     )
+
+
+def test_ensure_payload_indexes_covers_every_filtered_key() -> None:
+    created: list[tuple[str, str]] = []
+
+    class FakeClient:
+        def create_payload_index(
+            self, collection_name: str, field_name: str, field_schema: Any
+        ) -> None:
+            created.append((collection_name, field_name))
+
+    reindex.ensure_payload_indexes(FakeClient(), "col")  # type: ignore[arg-type]
+
+    assert set(created) == {("col", "metadata.source"), ("col", "metadata.vendor")}
