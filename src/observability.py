@@ -1,44 +1,55 @@
 """Optional Langfuse tracing; never creates a client when tracing is disabled."""
 
-from collections.abc import Callable
-from contextlib import nullcontext
+from collections.abc import Callable, Mapping
+from contextlib import AbstractContextManager, nullcontext
 from contextvars import ContextVar
 from dataclasses import asdict, is_dataclass
 from functools import lru_cache, wraps
-from typing import Any
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar, cast
+
+from langchain_core.runnables.config import RunnableConfig
 
 from src.config import settings
 
-last_trace_id = ContextVar("last_trace_id", default=None)
+if TYPE_CHECKING:
+    from src.prompts.managed import ManagedPrompt
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+last_trace_id: ContextVar[str | None] = ContextVar("last_trace_id", default=None)
 
 
 @lru_cache(maxsize=1)
-def get_langfuse():
+def get_langfuse() -> Any:
     from langfuse import Langfuse
 
-    missing = []
+    missing: list[str] = []
     if not settings.langfuse_public_key:
         missing.append("LANGFUSE_PUBLIC_KEY")
-    if settings.langfuse_secret_key is None:
+    secret_key = settings.langfuse_secret_key
+    if secret_key is None:
         missing.append("LANGFUSE_SECRET_KEY")
     if missing:
         raise ValueError(
             f"{' and '.join(missing)} must be set when Langfuse is enabled"
         )
+    assert secret_key is not None
 
     return Langfuse(
         public_key=settings.langfuse_public_key,
-        secret_key=settings.langfuse_secret_key.get_secret_value(),
+        secret_key=secret_key.get_secret_value(),
         base_url=settings.langfuse_base_url,
     )
 
 
-def serialize(value):
-    if is_dataclass(value):
+def serialize(value: object) -> object:
+    if is_dataclass(value) and not isinstance(value, type):
         return serialize(asdict(value))
-    if hasattr(value, "model_dump"):
-        return serialize(value.model_dump())
-    if isinstance(value, dict):
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        return serialize(model_dump())
+    if isinstance(value, Mapping):
         return {str(k): serialize(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
         return [serialize(v) for v in value]
@@ -52,10 +63,10 @@ def traced(
     input_factory: Callable[..., Any] | None = None,
     metadata_factory: Callable[..., dict[str, Any]] | None = None,
     output_factory: Callable[[Any], Any] | None = None,
-):
-    def decorate(fn):
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorate(fn: Callable[P, R]) -> Callable[P, R]:
         @wraps(fn)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             if not settings.tracing_enabled:
                 return fn(*args, **kwargs)
             inputs = (
@@ -72,7 +83,7 @@ def traced(
                     },
                 }
             )
-            observation = {
+            observation: dict[str, Any] = {
                 "name": name,
                 "as_type": kind,
                 "input": inputs,
@@ -96,7 +107,7 @@ def traced(
     return decorate
 
 
-def model_config(run_name: str | None = None):
+def model_config(run_name: str | None = None) -> RunnableConfig:
     if not settings.tracing_enabled:
         return {}
     from langfuse.langchain import CallbackHandler
@@ -104,13 +115,15 @@ def model_config(run_name: str | None = None):
     get_langfuse()
     if not settings.langfuse_public_key:
         raise ValueError("LANGFUSE_PUBLIC_KEY must be set when tracing is enabled")
-    config = {"callbacks": [CallbackHandler(public_key=settings.langfuse_public_key)]}
+    config: dict[str, Any] = {
+        "callbacks": [CallbackHandler(public_key=settings.langfuse_public_key)]
+    }
     if run_name:
         config["run_name"] = run_name
-    return config
+    return cast(RunnableConfig, config)
 
 
-def prompt_context(managed_prompt):
+def prompt_context(managed_prompt: "ManagedPrompt") -> AbstractContextManager[Any]:
     if not settings.tracing_enabled:
         return nullcontext()
     from langfuse import propagate_attributes
@@ -123,12 +136,12 @@ def prompt_context(managed_prompt):
     )
 
 
-def flush():
+def flush() -> None:
     if settings.tracing_enabled:
         get_langfuse().flush()
 
 
-def trace_url():
+def trace_url() -> str | None:
     trace_id = last_trace_id.get()
     return (
         get_langfuse().get_trace_url(trace_id=trace_id)

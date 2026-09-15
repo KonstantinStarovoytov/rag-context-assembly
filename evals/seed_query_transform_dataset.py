@@ -1,5 +1,7 @@
 from uuid import NAMESPACE_URL, uuid5
 
+from functools import cache
+
 from langfuse import Langfuse
 
 from src.config import settings
@@ -7,11 +9,16 @@ from src.config import settings
 DATASET_NAME = "rag/retrieval-query-transform-v1"
 
 
-langfuse = Langfuse(
-    public_key=settings.langfuse_public_key,
-    secret_key=(settings.langfuse_secret_key.get_secret_value()),
-    base_url=settings.langfuse_base_url,
-)
+# Built on first use, not at import: tests import the constants from this
+# module and must not need Langfuse credentials.
+@cache
+def langfuse_client() -> Langfuse:
+    assert settings.langfuse_secret_key is not None, "LANGFUSE_SECRET_KEY is unset"
+    return Langfuse(
+        public_key=settings.langfuse_public_key,
+        secret_key=settings.langfuse_secret_key.get_secret_value(),
+        base_url=settings.langfuse_base_url,
+    )
 
 
 INTENTS = [
@@ -205,7 +212,7 @@ INTENTS = [
 
 
 def main() -> None:
-    langfuse.create_dataset(
+    langfuse_client().create_dataset(
         name=DATASET_NAME,
         description=(
             "Paired benchmark for query transformation. "
@@ -226,7 +233,7 @@ def main() -> None:
                 )
             )
 
-            langfuse.create_dataset_item(
+            langfuse_client().create_dataset_item(
                 dataset_name=DATASET_NAME,
                 id=item_id,
                 input={
@@ -252,7 +259,7 @@ def main() -> None:
 
             count += 1
 
-    langfuse.flush()
+    langfuse_client().flush()
 
     print(f"Seeded {count} cases into '{DATASET_NAME}'")
 

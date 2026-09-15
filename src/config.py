@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     cohere_rerank_model: str = "rerank-v4.0-fast"
 
     qdrant_url: str = "http://localhost:6333"
+    # Qdrant Cloud requires a key; a local container does not.
+    qdrant_api_key: SecretStr | None = None
     qdrant_collection: str = "agent_docs_v2"
     langfuse_public_key: str | None = None
     langfuse_secret_key: SecretStr | None = None
@@ -37,6 +39,20 @@ class Settings(BaseSettings):
     per_query_top_k: int = Field(default=20, ge=1)
     qdrant_hybrid_collection: str = "agent_docs_hybrid_v1"
     sparse_embedding_model: str = "Qdrant/bm25"
+
+    # Every served request spends OpenAI and Cohere credits, so the deployed API
+    # refuses to start without a token. Unset is allowed only for local CLI use.
+    api_token: SecretStr | None = None
+    api_max_question_chars: int = Field(default=500, ge=1)
+    # The MCP transport rejects unknown Host headers to block DNS rebinding, so
+    # the public hostname must be declared. Empty means localhost only.
+    api_allowed_hosts: str = ""
+    # Server-wide cap on paid requests, so a looping agent or a leaked token
+    # cannot run up the OpenAI and Cohere bill. One machine, so in-memory is fine.
+    api_rate_limit_per_minute: int = Field(default=60, ge=1)
+    # Date the corpus was indexed, shown to callers so they know the docs are a
+    # snapshot rather than live pages. Set it when re-indexing.
+    index_snapshot: str | None = None
 
 
 settings = Settings()

@@ -40,13 +40,13 @@ def main() -> None:
     print("DENSE RETRIEVAL")
     print("=" * 80)
 
-    for rank, result in enumerate(
+    for rank, dense in enumerate(
         dense_results,
         start=1,
     ):
-        metadata = result.document.metadata
+        metadata = dense.document.metadata
 
-        print(f"#{rank:<2} score={result.score:.4f} {metadata.get('title')}")
+        print(f"#{rank:<2} score={dense.score:.4f} {metadata.get('title')}")
 
     reranker = CohereReranker()
 

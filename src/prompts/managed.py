@@ -5,6 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from hashlib import sha256
+from collections.abc import Callable
 from typing import Any
 
 from src.observability import get_langfuse
@@ -55,7 +56,7 @@ def _evidence_planner_messages() -> list[dict[str, str]]:
     ]
 
 
-PROMPT_SPECS = {
+PROMPT_SPECS: dict[str, tuple[str, Callable[[], list[dict[str, str]]]]] = {
     "answer": ("doc-bot/answer", _answer_messages),
     "answer-evaluator": ("doc-bot/answer-evaluator", _answer_evaluator_messages),
     "translate": ("doc-bot/translate", _translate_messages),
@@ -158,7 +159,7 @@ def get_chat_prompt(
         )
 
 
-def publish_managed_prompt(name: str, client=None) -> tuple[str, int]:
+def publish_managed_prompt(name: str, client: Any | None = None) -> tuple[str, int]:
     """Publish exactly one local fallback as a Langfuse production prompt."""
     if name not in PROMPT_SPECS:
         raise ValueError(f"Unknown managed prompt: {name}")
@@ -174,8 +175,8 @@ def publish_managed_prompt(name: str, client=None) -> tuple[str, int]:
     return remote_name, prompt.version
 
 
-def publish_managed_prompts(client=None) -> dict[str, int]:
-    versions = {}
+def publish_managed_prompts(client: Any | None = None) -> dict[str, int]:
+    versions: dict[str, int] = {}
     for name in PROMPT_SPECS:
         remote_name, version = publish_managed_prompt(name, client)
         versions[remote_name] = version

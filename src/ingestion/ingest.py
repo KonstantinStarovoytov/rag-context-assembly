@@ -12,21 +12,27 @@ from src.rag.embeddings import (
 )
 
 
-def create_vector_store() -> QdrantVectorStore:
-    client = QdrantClient(url=settings.qdrant_url)
+def get_qdrant_client() -> QdrantClient:
+    """One place that knows how to reach Qdrant, local container or Cloud."""
+    api_key = settings.qdrant_api_key
 
+    return QdrantClient(
+        url=settings.qdrant_url,
+        api_key=api_key.get_secret_value() if api_key else None,
+    )
+
+
+def create_vector_store() -> QdrantVectorStore:
     return QdrantVectorStore(
-        client=client,
+        client=get_qdrant_client(),
         collection_name=settings.qdrant_collection,
         embedding=get_embeddings(),
     )
 
 
 def get_hybrid_vector_store() -> QdrantVectorStore:
-    client = QdrantClient(url=settings.qdrant_url)
-
     return QdrantVectorStore(
-        client=client,
+        client=get_qdrant_client(),
         collection_name=(settings.qdrant_hybrid_collection),
         embedding=get_embeddings(),
         sparse_embedding=get_sparse_embeddings(),
@@ -43,12 +49,8 @@ def add_documents(
 
 
 def get_vector_store() -> QdrantVectorStore:
-    client = QdrantClient(
-        url=settings.qdrant_url,
-    )
-
     return QdrantVectorStore(
-        client=client,
+        client=get_qdrant_client(),
         collection_name=settings.qdrant_collection,
         embedding=get_embeddings(),
     )

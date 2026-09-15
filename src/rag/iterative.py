@@ -7,12 +7,13 @@ from src.observability import traced
 from src.rag.context_selector import select_generation_context
 from src.rag.multi_query_retriever import _document_key
 from src.rag.planner import RetrievalDecision, gap_query
+from src.rag.reranker import RerankResult
 from src.rag.retriever import SearchResult
 
 
 @dataclass
 class RetrievalOutcome:
-    results: list
+    results: list[RerankResult]
     rounds: int
     stop_reason: str
     decisions: list[RetrievalDecision]
@@ -24,9 +25,9 @@ def retrieve_two_hop(
     question: str,
     initial_queries: list[str],
     *,
-    retrieve: Callable,
-    rerank: Callable,
-    assess: Callable,
+    retrieve: Callable[[list[str]], list[SearchResult]],
+    rerank: Callable[[str, list[SearchResult]], list[RerankResult]],
+    assess: Callable[[str, list[RerankResult]], RetrievalDecision],
     context_k: int,
 ) -> RetrievalOutcome:
     if context_k < 1:

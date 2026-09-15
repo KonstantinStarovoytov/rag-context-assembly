@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from langchain_core.documents import Document
+
 from src.observability import traced
 from src.rag.query_transformer import (
     QueryTransformer,
@@ -27,8 +29,8 @@ def search_queries_hybrid(
     """
 
     # Remove empty / duplicate queries.
-    unique_queries = []
-    seen = set()
+    unique_queries: list[str] = []
+    seen: set[str] = set()
 
     for query in queries:
         value = query.strip()
@@ -44,8 +46,8 @@ def search_queries_hybrid(
         seen.add(key)
         unique_queries.append(value)
 
-    documents = {}
-    rrf_scores = defaultdict(float)
+    documents: dict[str, Document] = {}
+    rrf_scores: dict[str, float] = defaultdict(float)
 
     for query in unique_queries:
         results = search_hybrid(

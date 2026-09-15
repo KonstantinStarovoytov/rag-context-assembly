@@ -5,6 +5,7 @@ requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "cohere>=7.1.1",
+    "fastapi>=0.141.1",
     "fastembed>=0.8.0",
     "httpx>=0.28.1",
     "langchain>=1.4.0",
@@ -14,14 +15,78 @@ dependencies = [
     "langchain-text-splitters>=1.1.2",
     "langfuse>=4.15.2",
     "markdownify>=1.2.3",
+    "mcp>=2.2.0",
     "openai>=3.13.0",
     "pydantic-settings>=2.15.0",
     "qdrant-client>=1.19.0",
     "tiktoken>=0.14.0",
+    "uvicorn[standard]>=0.53.0",
 ]
+
+[project.scripts]
+rag-ask = "src.ask:main"
+rag-mcp = "src.service.mcp_server:main"
 
 [dependency-groups]
 dev = [
+    "mypy>=2.3.1",
     "pytest>=9.1.1",
     "ruff>=0.16.7",
+    "types-beautifulsoup4>=4.12.0.20250516",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py314"
+src = ["src", "evals", "tests"]
+
+[tool.ruff.lint]
+# flake8: pycodestyle + pyflakes. Line length is ruff format's job.
+select = ["E", "W", "F"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["src"]
+exclude = ["evals/ragas/"]
+explicit_package_bases = true
+mypy_path = "."
+plugins = ["pydantic.mypy"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cohere",
+    "cohere.*",
+    "fastembed",
+    "fastembed.*",
+    "langchain",
+    "langchain.*",
+    "langchain_core",
+    "langchain_core.*",
+    "langchain_openai",
+    "langchain_openai.*",
+    "langchain_qdrant",
+    "langchain_qdrant.*",
+    "langchain_text_splitters",
+    "langchain_text_splitters.*",
+    "langfuse",
+    "langfuse.*",
+    "markdownify",
+    "qdrant_client",
+    "qdrant_client.*",
+    "tiktoken",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "evals.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+warn_return_any = false

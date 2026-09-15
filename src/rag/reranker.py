@@ -20,11 +20,11 @@ class RerankResult:
 
 
 def _rerank_trace_input(
-    _self,
+    _self: object,
     query: str,
     results: list[SearchResult],
     top_n: int = 5,
-) -> dict:
+) -> dict[str, object]:
     return {
         "query": query,
         "top_n": top_n,
@@ -41,7 +41,7 @@ def _rerank_trace_input(
     }
 
 
-def _rerank_trace_output(results: list[RerankResult]) -> list[dict]:
+def _rerank_trace_output(results: list[RerankResult]) -> list[dict[str, object]]:
     return [
         {
             "source": result.document.metadata.get("source"),
@@ -56,10 +56,16 @@ def _rerank_trace_output(results: list[RerankResult]) -> list[dict]:
     ]
 
 
+# Cohere's default is 300 s; reranking 20 chunks takes about a second.
+RERANK_TIMEOUT_SECONDS = 30.0
+
+
 class CohereReranker:
     def __init__(self) -> None:
         self.client = cohere.ClientV2(
             api_key=settings.cohere_api_key.get_secret_value(),
+            timeout=RERANK_TIMEOUT_SECONDS,
+            max_retries=1,
         )
 
         self.model = settings.cohere_rerank_model

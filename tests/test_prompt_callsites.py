@@ -40,7 +40,7 @@ def test_generator_uses_versioned_answer_prompt_and_links_it(monkeypatch):
     model.invoke.return_value = SimpleNamespace(content="answer [1]")
     monkeypatch.setattr(generator, "get_chat_prompt", get_prompt)
     monkeypatch.setattr(generator, "prompt_context", prompt_context)
-    monkeypatch.setattr(generator, "ChatOpenAI", Mock(return_value=model))
+    monkeypatch.setattr(generator, "chat_model", Mock(return_value=model))
     result = RerankResult(
         document=Document(
             page_content="context",
@@ -75,13 +75,13 @@ def test_generate_from_selected_does_not_drop_same_section_chunks(monkeypatch):
         ],
     )
     monkeypatch.setattr(generator, "get_chat_prompt", Mock(return_value=prompt))
-    monkeypatch.setattr(generator, "ChatOpenAI", Mock())
+    monkeypatch.setattr(generator, "chat_model", Mock())
     monkeypatch.setattr(
         generator,
         "prompt_context",
         lambda _prompt: __import__("contextlib").nullcontext(),
     )
-    generator.ChatOpenAI.return_value.invoke.return_value = SimpleNamespace(
+    generator.chat_model.return_value.invoke.return_value = SimpleNamespace(
         content="ok"
     )
     chunks = [
@@ -122,7 +122,7 @@ def test_translate_uses_versioned_prompt_and_links_it(monkeypatch):
     model = Mock()
     model.invoke.return_value = SimpleNamespace(content="question")
     monkeypatch.setattr(planner, "prompt_context", prompt_context)
-    monkeypatch.setattr(planner, "ChatOpenAI", Mock(return_value=model))
+    monkeypatch.setattr(planner, "chat_model", Mock(return_value=model))
 
     assert planner.translate_query("вопрос") == "question"
     linked.assert_called_once_with(prompt)
@@ -144,7 +144,7 @@ def test_evidence_planner_uses_pinned_prompt_settings(monkeypatch):
     structured.invoke.return_value = SimpleNamespace()
     model = Mock()
     model.with_structured_output.return_value = structured
-    monkeypatch.setattr(planner, "ChatOpenAI", Mock(return_value=model))
+    monkeypatch.setattr(planner, "chat_model", Mock(return_value=model))
 
     planner.EvidencePlanner().assess("question", [])
 
