@@ -22,7 +22,7 @@ from src.service import core
 INSTRUCTIONS = """
 Answers questions from an indexed snapshot of the official documentation on
 customising coding agents: Claude Code, Cursor, OpenAI Codex and the MCP
-specification. About 36 pages; not live docs.
+specification. About 35 pages; not live docs.
 
 Use `ask_docs` for a written answer with sources. Use `search_docs` when you want
 the documentation passages themselves and will reason over them yourself.
@@ -34,7 +34,7 @@ COVERAGE = (
     "Claude Code (skills, subagents, plugins, hooks, MCP, memory), Cursor "
     "(rules, skills, subagents, hooks, MCP, plugins), OpenAI Codex (AGENTS.md, "
     "rules, subagents, skills, hooks, MCP, config) and the MCP specification. "
-    "About 36 pages. Not for: the Claude API / Messages API, claude.ai, general "
+    "About 35 pages. Not for: the Claude API / Messages API, claude.ai, general "
     "programming, repository code or private docs; the index does not contain "
     "them. The index is a snapshot, not live docs; `index_snapshot` in the "
     "result says when it was taken."

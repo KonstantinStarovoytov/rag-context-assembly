@@ -147,6 +147,14 @@ from a vendor's `llms.txt`: a rename looks identical to a removal, so the run
 fails and opens a GitHub issue instead. And it does not rebuild from scratch;
 `uv run python -m src.index_hybrid --recreate` stays the manual escape hatch.
 
+Which pages are indexed is decided by `src/ingestion/sources.py`: each vendor
+has an `llms.txt` and a list of URL suffixes, and every suffix must match
+exactly one page or the loader refuses to run, so a vendor's rename is loud.
+The MCP docs are published per spec version, so that source names a
+`versioned_prefix` and the loader picks the newest dated version itself. After
+you change `sources.py`, run `uv run python -m src.reindex --prune` once to
+drop the pages no config selects any more.
+
 The workflow needs the repository secrets `OPENAI_API_KEY`, `COHERE_API_KEY`,
 `QDRANT_URL` and `QDRANT_API_KEY`. The first run indexes everything (there is
 no manifest yet) and takes a few minutes.
