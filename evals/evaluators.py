@@ -1,3 +1,6 @@
+import math
+from functools import partial
+
 from langfuse import Evaluation
 
 
@@ -139,3 +142,48 @@ def reciprocal_rank(
         value=0.0,
         comment="Relevant result not found",
     )
+
+
+# hit@k saturates once one relevant chunk sits anywhere in the top k, which is
+# the case on every current dataset. These two keep moving: precision counts
+# how much of the window is relevant, NDCG rewards putting it first.
+
+
+def precision_at_k(*, output, expected_output, k, **kwargs):
+    """Relevant results among the first k, over the results actually present."""
+    results = output["results"][:k]
+    if not results:
+        return Evaluation(name=f"precision_at_{k}", value=0.0, comment="No results")
+    relevant = sum(_is_relevant(result, expected_output) for result in results)
+    return Evaluation(
+        name=f"precision_at_{k}",
+        value=relevant / len(results),
+        comment=f"{relevant} of {len(results)} relevant",
+    )
+
+
+def ndcg_at_k(*, output, expected_output, k, **kwargs):
+    """Binary-gain NDCG. The ideal ranking has every relevant result first;
+    the number of relevant results is taken from the full list, since the
+    datasets do not enumerate all relevant chunks."""
+    results = output["results"]
+    gains = [float(_is_relevant(result, expected_output)) for result in results]
+    dcg = sum(gain / math.log2(rank + 1) for rank, gain in enumerate(gains[:k], 1))
+    ideal_hits = min(k, int(sum(gains)))
+    if ideal_hits == 0:
+        return Evaluation(name=f"ndcg_at_{k}", value=0.0, comment="No relevant result")
+    idcg = sum(1.0 / math.log2(rank + 1) for rank in range(1, ideal_hits + 1))
+    return Evaluation(name=f"ndcg_at_{k}", value=dcg / idcg)
+
+
+def _named(fn, k):
+    # Langfuse labels evaluator errors by __name__, which partial lacks.
+    bound = partial(fn, k=k)
+    bound.__name__ = f"{fn.__name__.removesuffix('_k')}_{k}"
+    return bound
+
+
+precision_at_5 = _named(precision_at_k, 5)
+precision_at_8 = _named(precision_at_k, 8)
+precision_at_10 = _named(precision_at_k, 10)
+ndcg_at_10 = _named(ndcg_at_k, 10)

@@ -16,5 +16,14 @@ Score each value from 0.0 to 1.0 using only the supplied documents.
   item and directly support the claims they cite. Penalize unsupported, incorrect,
   missing, or invented citations.
 
+Classify failure_mode as exactly one of:
+- none: the answer directly addresses the question.
+- refusal: the answer says the documentation does not cover the question, or
+  declines to answer, even if that abstention is correct.
+- empty: the answer contains nothing usable.
+- repeated_content: the answer loops or restates the same passage.
+- fail_follow_inst: the answer summarises the retrieved documentation instead
+  of answering the question asked.
+
 List concise concrete examples for unsupported_claims, missing_aspects, and
 citation_issues. Keep summary factual and short.

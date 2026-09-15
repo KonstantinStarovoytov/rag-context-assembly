@@ -13,6 +13,7 @@ Run: uv run python -m evals.probe_context_assembly
 
 import argparse
 import time
+from collections.abc import Callable
 from itertools import combinations
 from typing import Any
 
@@ -83,8 +84,46 @@ def oracle_complete(
     return 0.0, f"needs>{k}"
 
 
+def coverage_curve(
+    cases: list[dict[str, Any]],
+    pools: list[int],
+    retrieve_and_rank: Callable[[str, int], list[RerankResult]],
+) -> dict[int, float]:
+    """Complete-coverage rate of the whole reranked pool, per pool size.
+
+    Retrieval-only: this is the recall ceiling the selector works under, so
+    the choice of retrieval_top_k rests on a curve rather than two points.
+    """
+    curve: dict[int, float] = {}
+    for pool in pools:
+        total = 0.0
+        for case in cases:
+            total += _complete(retrieve_and_rank(case["question"], pool), case)
+        curve[pool] = total / len(cases)
+    return curve
+
+
+def _live_retrieve_and_rank(
+    reranker: CohereReranker,
+) -> Callable[[str, int], list[RerankResult]]:
+    def run(question: str, pool: int) -> list[RerankResult]:
+        ranked = reranker.rerank(question, search_hybrid(question, k=pool), top_n=pool)
+        time.sleep(COHERE_REQUEST_INTERVAL_SECONDS)
+        return ranked
+
+    return run
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--curve",
+        nargs="*",
+        type=int,
+        metavar="POOL",
+        help="retrieval-only: complete coverage per candidate pool size "
+        "(default 5 10 15 20 30) and exit",
+    )
     parser.add_argument(
         "--pool",
         type=int,
@@ -96,6 +135,13 @@ def main() -> None:
     )
     args = parser.parse_args()
     reranker = CohereReranker()
+    if args.curve is not None:
+        pools = args.curve or [5, 10, 15, 20, 30]
+        curve = coverage_curve(CASES, pools, _live_retrieve_and_rank(reranker))
+        print("pool  complete-coverage of the whole reranked pool")
+        for pool, value in curve.items():
+            print(f"{pool:4}  {value:.3f}")
+        return
     planner = EvidencePlanner()
     variants = ["pool", "oracle5", "oracle8", "selected5", "selected8"]
     totals = dict.fromkeys(variants, 0.0)

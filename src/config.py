@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     evidence_planner_prompt_version: int | None = Field(default=None, ge=1)
     prompt_strict: bool = False
     openai_chat_model: str = "gpt-5.6-luna"
+    # LLM-as-judge should not be the model it grades. Unset means the judge
+    # runs on the generator model and every eval run records that it did.
+    openai_judge_model: str | None = None
     tracing_enabled: bool = True
     # 5 -> 8 covered both aspects in half the multi-aspect set instead of a third.
     generation_top_k: int = Field(default=8, ge=1)
