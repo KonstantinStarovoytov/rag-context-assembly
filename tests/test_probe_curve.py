@@ -54,3 +54,38 @@ def test_curve_reports_progress_as_each_pool_completes() -> None:
     )
 
     assert seen == [(5, 1.0), (10, 1.0)]
+
+
+def test_retry_on_rate_limit_backs_off_and_retries() -> None:
+    from cohere.errors.too_many_requests_error import TooManyRequestsError
+
+    from evals.probe_context_assembly import with_cohere_retry
+
+    calls = 0
+    slept: list[float] = []
+
+    def flaky() -> str:
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise TooManyRequestsError(headers={}, body={"message": "rate limited"})
+        return "ok"
+
+    result = with_cohere_retry(flaky, sleep=slept.append)
+
+    assert result == "ok"
+    assert calls == 3
+    assert slept == [10.0, 20.0]
+
+
+def test_retry_gives_up_after_max_attempts() -> None:
+    import pytest as _pytest
+    from cohere.errors.too_many_requests_error import TooManyRequestsError
+
+    from evals.probe_context_assembly import with_cohere_retry
+
+    def always_fails() -> str:
+        raise TooManyRequestsError(headers={}, body={"message": "rate limited"})
+
+    with _pytest.raises(TooManyRequestsError):
+        with_cohere_retry(always_fails, sleep=lambda _s: None, max_attempts=2)

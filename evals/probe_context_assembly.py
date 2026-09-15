@@ -15,7 +15,9 @@ import argparse
 import time
 from collections.abc import Callable
 from itertools import combinations
-from typing import Any
+from typing import Any, TypeVar
+
+from cohere.errors.too_many_requests_error import TooManyRequestsError
 
 from evals.evidence_coverage import CASES, coverage
 from src.rag.context_selector import select_generation_context
@@ -84,6 +86,34 @@ def oracle_complete(
             if all(hits & picked for hits in per_group):
                 return 1.0, f"min={size}"
     return 0.0, f"needs>{k}"
+
+
+T = TypeVar("T")
+
+
+def with_cohere_retry(
+    call: Callable[[], T],
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+    max_attempts: int = 5,
+    initial_backoff: float = 10.0,
+) -> T:
+    """Retry a Cohere call through 429s with exponential backoff.
+
+    A trial key's per-minute window can already be partly spent by an earlier
+    run in the same minute, so even a conservative fixed interval can still
+    open with a 429; this recovers instead of losing the whole run.
+    """
+    backoff = initial_backoff
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return call()
+        except TooManyRequestsError:
+            if attempt == max_attempts:
+                raise
+            sleep(backoff)
+            backoff *= 2
+    raise AssertionError("unreachable")
 
 
 def coverage_curve(
