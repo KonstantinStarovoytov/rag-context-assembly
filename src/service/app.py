@@ -11,7 +11,8 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.security import HTTPBearer
 from fastapi.responses import JSONResponse
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel, Field
@@ -159,6 +160,10 @@ def create_app() -> FastAPI:
             "documentation. The same pipeline is served as an MCP server at /mcp."
         ),
         lifespan=lifespan,
+        # Declares the bearer scheme in the OpenAPI schema so Swagger UI shows
+        # an Authorize button. The check itself stays in the middleware below;
+        # auto_error=False keeps this dependency from ever rejecting anything.
+        dependencies=[Depends(HTTPBearer(auto_error=False))],
     )
 
     @app.middleware("http")

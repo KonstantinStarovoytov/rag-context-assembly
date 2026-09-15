@@ -27,6 +27,9 @@ services:
       # dashboard.
       - key: API_TOKEN
         generateValue: true
+      # Optional token for guests; clear it in the dashboard to revoke access.
+      - key: API_GUEST_TOKEN
+        sync: false
       # The MCP transport answers 421 to Host headers it was not told about.
       - key: API_ALLOWED_HOSTS
         value: agent-docs-mcp.onrender.com
