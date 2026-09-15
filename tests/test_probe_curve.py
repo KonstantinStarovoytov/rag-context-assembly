@@ -35,3 +35,22 @@ def test_curve_reports_complete_coverage_per_pool_size() -> None:
     curve = coverage_curve([CASE], [5, 10], retrieve_and_rank)
 
     assert curve == {5: 0.0, 10: 1.0}
+
+
+def test_curve_reports_progress_as_each_pool_completes() -> None:
+    """A crash on pool 30 must not lose the results already computed for pool 5."""
+    from evals.probe_context_assembly import coverage_curve
+
+    seen: list[tuple[int, float]] = []
+
+    def retrieve_and_rank(question: str, pool: int) -> list[Any]:
+        return [_Ranked("rules"), _Ranked("hooks")]
+
+    coverage_curve(
+        [CASE],
+        [5, 10],
+        retrieve_and_rank,
+        on_pool_done=lambda p, v: seen.append((p, v)),
+    )
+
+    assert seen == [(5, 1.0), (10, 1.0)]

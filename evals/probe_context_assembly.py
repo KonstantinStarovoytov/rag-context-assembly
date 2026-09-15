@@ -25,7 +25,9 @@ from src.rag.retriever import search_hybrid
 
 CANDIDATE_POOL = 20
 RERANK_TOP_K = 10
-COHERE_REQUEST_INTERVAL_SECONDS = 6.5
+# Cohere trial keys allow 10 calls/minute; 6.5s (~9.2/min) was too close
+# to the edge and tripped 429s mid-run. 10s keeps a safety margin.
+COHERE_REQUEST_INTERVAL_SECONDS = 10.0
 
 
 def _rows(results: list[RerankResult]) -> list[dict[str, Any]]:
@@ -88,11 +90,14 @@ def coverage_curve(
     cases: list[dict[str, Any]],
     pools: list[int],
     retrieve_and_rank: Callable[[str, int], list[RerankResult]],
+    on_pool_done: Callable[[int, float], None] | None = None,
 ) -> dict[int, float]:
     """Complete-coverage rate of the whole reranked pool, per pool size.
 
     Retrieval-only: this is the recall ceiling the selector works under, so
     the choice of retrieval_top_k rests on a curve rather than two points.
+    `on_pool_done` fires after each pool size so a crash (e.g. a rate limit)
+    partway through does not lose results already computed for smaller pools.
     """
     curve: dict[int, float] = {}
     for pool in pools:
@@ -100,6 +105,8 @@ def coverage_curve(
         for case in cases:
             total += _complete(retrieve_and_rank(case["question"], pool), case)
         curve[pool] = total / len(cases)
+        if on_pool_done is not None:
+            on_pool_done(pool, curve[pool])
     return curve
 
 
@@ -137,10 +144,15 @@ def main() -> None:
     reranker = CohereReranker()
     if args.curve is not None:
         pools = args.curve or [5, 10, 15, 20, 30]
-        curve = coverage_curve(CASES, pools, _live_retrieve_and_rank(reranker))
         print("pool  complete-coverage of the whole reranked pool")
-        for pool, value in curve.items():
-            print(f"{pool:4}  {value:.3f}")
+        coverage_curve(
+            CASES,
+            pools,
+            _live_retrieve_and_rank(reranker),
+            on_pool_done=lambda pool, value: print(
+                f"{pool:4}  {value:.3f}", flush=True
+            ),
+        )
         return
     planner = EvidencePlanner()
     variants = ["pool", "oracle5", "oracle8", "selected5", "selected8"]
