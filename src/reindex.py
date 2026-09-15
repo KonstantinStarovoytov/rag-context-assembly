@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
-from qdrant_client import models
+from qdrant_client import QdrantClient, models
 
 from src.config import settings
 from src.ingestion.chunker import chunk_document
@@ -149,6 +149,20 @@ def smoke_failures(
 
 # --- wiring against the real index ------------------------------------------
 
+# Qdrant refuses to filter on a payload key without an index. These are the
+# keys the service filters on (vendor scope) and the re-index deletes by.
+FILTERED_KEYS = ("metadata.source", "metadata.vendor")
+
+
+def ensure_payload_indexes(client: QdrantClient, collection: str) -> None:
+    """Idempotent: Qdrant accepts creating an index that already exists."""
+    for key in FILTERED_KEYS:
+        client.create_payload_index(
+            collection_name=collection,
+            field_name=key,
+            field_schema=models.PayloadSchemaType.KEYWORD,
+        )
+
 
 def _delete_source(url: str) -> None:
     client = get_qdrant_client()
@@ -228,6 +242,11 @@ def main() -> int:
         print(f"  reindex {document.url}")
 
     if plan.to_index:
+        client = get_qdrant_client()
+        try:
+            ensure_payload_indexes(client, settings.qdrant_hybrid_collection)
+        finally:
+            client.close()
         manifest = apply(
             plan,
             manifest,
