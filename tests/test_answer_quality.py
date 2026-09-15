@@ -158,7 +158,9 @@ def test_both_evaluators_share_one_judge_call(monkeypatch):
 
     answer_quality.answer_quality_metrics(input={"question": "q"}, output=output)
     answer_quality.abstention_correct(
-        input={"question": "q"}, output=output, expected_output={"expect_abstention": True}
+        input={"question": "q"},
+        output=output,
+        expected_output={"expect_abstention": True},
     )
 
     assert calls == 1
