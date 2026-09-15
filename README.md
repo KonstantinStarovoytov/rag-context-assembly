@@ -74,6 +74,14 @@ claude.ai custom connectors, which require OAuth. `API_RATE_LIMIT_PER_MINUTE`
 (default 60) caps paid requests across the machine so a looping agent cannot
 run up the bill; over the cap the API answers 429 with `Retry-After`.
 
+The interactive docs at `/docs` are public and declare the bearer scheme, so
+the **Authorize** button there takes the token and "Try it out" works.
+
+**Want to try it?** An optional `API_GUEST_TOKEN` is a second token with the
+same rights and the same rate limit, kept separate so it can be revoked (clear
+the variable and redeploy) without rotating the owner's token. Ask me for one
+and use it exactly like `API_TOKEN` below.
+
 ```bash
 docker compose up -d --build     # Qdrant plus the API on :8080
 curl localhost:8080/health

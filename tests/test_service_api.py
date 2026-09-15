@@ -3,6 +3,9 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from pydantic import SecretStr
+
+from src.config import settings
 from src.service import app as app_module
 from src.service import auth, core
 
@@ -57,6 +60,46 @@ def test_ask_with_wrong_token_is_rejected(client: Any) -> None:
     )
 
     assert response.status_code == 401
+
+
+def test_guest_token_is_accepted_when_configured(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(core, "answer", _answer)
+    monkeypatch.setattr(settings, "api_guest_token", SecretStr("guest-token"))
+
+    response = client.post(
+        "/ask",
+        json={"question": "How do skills work?"},
+        headers={"Authorization": "Bearer guest-token"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_guest_token_is_rejected_when_unset(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "api_guest_token", None)
+
+    response = client.post(
+        "/ask",
+        json={"question": "How do skills work?"},
+        headers={"Authorization": "Bearer guest-token"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_openapi_declares_bearer_auth(client: Any) -> None:
+    """Swagger UI needs the scheme in the schema to show an Authorize button."""
+    schema = client.get("/openapi.json").json()
+
+    assert schema["components"]["securitySchemes"]["HTTPBearer"] == {
+        "type": "http",
+        "scheme": "bearer",
+    }
+    assert schema["paths"]["/ask"]["post"]["security"] == [{"HTTPBearer": []}]
 
 
 def test_ask_returns_answer_and_sources(

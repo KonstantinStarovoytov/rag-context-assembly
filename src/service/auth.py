@@ -19,12 +19,25 @@ def required_token() -> str:
     return token.get_secret_value()
 
 
+def accepted_tokens() -> list[str]:
+    """The owner token, plus the guest token when one is configured."""
+    tokens = [required_token()]
+    guest = settings.api_guest_token
+    if guest is not None and guest.get_secret_value().strip():
+        tokens.append(guest.get_secret_value())
+    return tokens
+
+
 def token_accepted(header_value: str | None) -> bool:
     """Accept `Authorization: Bearer <token>`, comparing in constant time."""
-    expected = required_token()
+    expected = accepted_tokens()
     if not header_value:
         return False
     scheme, _, presented = header_value.partition(" ")
     if scheme.lower() != "bearer":
         return False
-    return compare_digest(presented.strip(), expected)
+    presented = presented.strip()
+    # Check every token rather than returning early, so timing does not reveal
+    # which one matched.
+    matches = [compare_digest(presented, token) for token in expected]
+    return any(matches)

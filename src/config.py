@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     # Every served request spends OpenAI and Cohere credits, so the deployed API
     # refuses to start without a token. Unset is allowed only for local CLI use.
     api_token: SecretStr | None = None
+    # Optional second token for people trying the service. It has the same
+    # rights as API_TOKEN and shares the rate limit; it exists only so it can be
+    # rotated or removed without touching the owner's token.
+    api_guest_token: SecretStr | None = None
     api_max_question_chars: int = Field(default=500, ge=1)
     # The MCP transport rejects unknown Host headers to block DNS rebinding, so
     # the public hostname must be declared. Empty means localhost only.
