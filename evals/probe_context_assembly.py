@@ -144,7 +144,10 @@ def _live_retrieve_and_rank(
     reranker: CohereReranker,
 ) -> Callable[[str, int], list[RerankResult]]:
     def run(question: str, pool: int) -> list[RerankResult]:
-        ranked = reranker.rerank(question, search_hybrid(question, k=pool), top_n=pool)
+        candidates = search_hybrid(question, k=pool)
+        ranked = with_cohere_retry(
+            lambda: reranker.rerank(question, candidates, top_n=pool)
+        )
         time.sleep(COHERE_REQUEST_INTERVAL_SECONDS)
         return ranked
 
