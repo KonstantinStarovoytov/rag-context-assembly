@@ -295,6 +295,37 @@ avoids paying for retrieval and reranking on every iteration — see
 The judge is a custom LLM evaluator, not a Ragas metric; its scores need review and do
 not by themselves prove an answer is complete.
 
+### Metrics that still move
+
+Every retrieval dataset is at hit@5 = 1.0, so hit@k and MRR can no longer tell
+two configurations apart. The retrieval runners therefore also report
+`precision_at_5/8/10` (how much of the window is relevant) and `ndcg_at_10`
+(whether the relevant chunks come first); precision@8 is the one to watch,
+since 8 chunks reach the generator.
+
+The judge labels each answer with a `failure_mode` (`none`, `refusal`,
+`empty`, `repeated_content`, `fail_follow_inst` — the taxonomy from
+Databricks' long-context RAG study), so an abstention no longer hides inside a
+high faithfulness score. Set `OPENAI_JUDGE_MODEL` to a model other than the
+generator; every run records `evaluator_independent` so a self-graded run is
+never mistaken for an independent one.
+
+`rag/negative-v1` ([evals/negative_cases.py](evals/negative_cases.py)) holds
+questions the corpus cannot answer — Copilot, Windsurf, API pricing, general
+Python. The right answer is an abstention, scored by `abstention_correct`:
+
+```bash
+uv run python -m evals.seed_negative_dataset          # once
+uv run python -m evals.run_answer_quality_experiment --negative
+```
+
+The recall ceiling the selector works under, per candidate pool size, without
+any LLM call:
+
+```bash
+uv run python -m evals.probe_context_assembly --curve 5 10 15 20 30
+```
+
 ```bash
 uv run python -m pytest tests -q
 uv run ruff check src evals tests

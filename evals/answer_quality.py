@@ -8,7 +8,7 @@ truth; the structured issue lists make each score auditable in Langfuse.
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from langchain_openai import ChatOpenAI
 from langfuse import Evaluation
@@ -17,6 +17,17 @@ from pydantic import BaseModel, Field
 from src.config import settings
 from src.observability import model_config, prompt_context, traced
 from src.prompts.managed import get_chat_prompt
+
+
+# Databricks, "Long Context RAG Performance of LLMs", Appendix F: the ways a
+# generator fails that the four scores below do not name.
+FailureMode = Literal[
+    "none",  # a direct answer
+    "refusal",  # says the documentation does not cover it
+    "empty",  # nothing usable
+    "repeated_content",  # loops or restates the same passage
+    "fail_follow_inst",  # summarises the context instead of answering
+]
 
 
 class AnswerQualityAssessment(BaseModel):
@@ -28,6 +39,16 @@ class AnswerQualityAssessment(BaseModel):
     missing_aspects: list[str]
     citation_issues: list[str]
     summary: str = Field(min_length=1)
+    failure_mode: FailureMode = "none"
+
+
+def judge_model() -> str:
+    return settings.openai_judge_model or settings.openai_chat_model
+
+
+def judge_is_independent() -> bool:
+    """False when the judge grades its own generations."""
+    return judge_model() != settings.openai_chat_model
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,7 +88,7 @@ def assess_answer_quality(
     )
     model = ChatOpenAI(
         api_key=settings.openai_api_key.get_secret_value(),
-        model=settings.openai_chat_model,
+        model=judge_model(),
         temperature=0,
     )
     with prompt_context(prompt):
@@ -81,6 +102,23 @@ def assess_answer_quality(
         assessment=assessment,
         prompt_metadata=prompt.metadata,
     )
+
+
+# Several evaluators read the same judgement; one paid call per answer.
+_assessments: dict[str, AnswerQualityResult] = {}
+
+
+def _judged(
+    question: str, answer: str, contexts: list[dict[str, Any]]
+) -> AnswerQualityResult:
+    key = json.dumps([question, answer, contexts], ensure_ascii=False, sort_keys=True)
+    if key not in _assessments:
+        _assessments[key] = assess_answer_quality(question, answer, contexts)
+    return _assessments[key]
+
+
+def forget_assessments() -> None:
+    _assessments.clear()
 
 
 def answer_quality_metrics(*, input, output, **_kwargs) -> list[Evaluation]:
@@ -102,14 +140,16 @@ def answer_quality_metrics(*, input, output, **_kwargs) -> list[Evaluation]:
             )
         ]
 
-    quality = assess_answer_quality(input["question"], answer, contexts)
+    quality = _judged(input["question"], answer, contexts)
     assessment = quality.assessment
     issues = {
         "unsupported_claims": assessment.unsupported_claims,
         "missing_aspects": assessment.missing_aspects,
         "citation_issues": assessment.citation_issues,
         "summary": assessment.summary,
-        "evaluator_model": settings.openai_chat_model,
+        "failure_mode": assessment.failure_mode,
+        "evaluator_model": judge_model(),
+        "evaluator_independent": judge_is_independent(),
         **quality.prompt_metadata,
     }
     return [
@@ -137,4 +177,32 @@ def answer_quality_metrics(*, input, output, **_kwargs) -> list[Evaluation]:
             comment=f"citation_issues={assessment.citation_issues}",
             metadata=issues,
         ),
+        # Categorical: which way the generator failed, if it did.
+        Evaluation(
+            name="answer_failure_mode",
+            value=assessment.failure_mode,
+            comment=assessment.summary,
+            metadata=issues,
+        ),
     ]
+
+
+def abstention_correct(*, input, output, expected_output, **_kwargs) -> Evaluation:
+    """Did the system abstain exactly when the corpus has no answer?
+
+    Negative cases set expect_abstention; on positive cases an abstention is
+    a miss that faithfulness alone would score as correct.
+    """
+    expected = bool(expected_output.get("expect_abstention", False))
+    answer = output.get("answer", "")
+    contexts = output.get("contexts", [])
+    if not answer:
+        abstained = True
+    else:
+        judged = _judged(input["question"], answer, contexts)
+        abstained = judged.assessment.failure_mode == "refusal"
+    return Evaluation(
+        name="abstention_correct",
+        value=float(abstained == expected),
+        comment=f"expected_abstention={expected} abstained={abstained}",
+    )

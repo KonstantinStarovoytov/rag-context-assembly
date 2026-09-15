@@ -6,6 +6,10 @@ from evals.evaluators import (
     hit_at_1,
     hit_at_5,
     hit_at_10,
+    ndcg_at_10,
+    precision_at_5,
+    precision_at_8,
+    precision_at_10,
     reciprocal_rank,
 )
 from src.config import settings
@@ -154,6 +158,10 @@ EVALUATORS = [
     hit_at_5,
     hit_at_10,
     reciprocal_rank,
+    precision_at_5,
+    precision_at_8,
+    precision_at_10,
+    ndcg_at_10,
 ]
 
 

@@ -4,7 +4,14 @@ import time
 
 from langfuse import Langfuse
 
-from evals.evaluators import hit_at_1, hit_at_5, hit_at_10, reciprocal_rank
+from evals.evaluators import (
+    hit_at_1,
+    hit_at_5,
+    hit_at_10,
+    ndcg_at_10,
+    precision_at_8,
+    reciprocal_rank,
+)
 from evals.seed_vendor_scope_dataset import DATASET_NAME
 from src.config import settings
 from src.rag.reranker import CohereReranker
@@ -58,7 +65,14 @@ def _task(*, item, use_vendor_scope: bool, **_kwargs) -> dict:
 
 def main() -> None:
     dataset = langfuse.get_dataset(DATASET_NAME)
-    evaluators = [hit_at_1, hit_at_5, hit_at_10, reciprocal_rank]
+    evaluators = [
+        hit_at_1,
+        hit_at_5,
+        hit_at_10,
+        precision_at_8,
+        ndcg_at_10,
+        reciprocal_rank,
+    ]
     common = {"evaluators": evaluators, "max_concurrency": 1}
     baseline = dataset.run_experiment(
         name="vendor-scope-unscoped-v1",

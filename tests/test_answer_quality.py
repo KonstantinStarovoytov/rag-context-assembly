@@ -25,7 +25,7 @@ def test_quality_metrics_fan_out_one_judge_assessment(monkeypatch):
     monkeypatch.setattr(
         answer_quality,
         "settings",
-        SimpleNamespace(openai_chat_model="judge-model"),
+        SimpleNamespace(openai_chat_model="judge-model", openai_judge_model=None),
     )
 
     scores = answer_quality.answer_quality_metrics(
@@ -41,8 +41,10 @@ def test_quality_metrics_fan_out_one_judge_assessment(monkeypatch):
         ("answer_relevance", 0.5),
         ("context_utilization", 1.0),
         ("citation_correctness", 0.25),
+        ("answer_failure_mode", "none"),
     ]
     assert scores[0].metadata["unsupported_claims"] == ["Unsupported detail"]
+    assert scores[0].metadata["evaluator_independent"] is False
 
 
 def test_missing_answer_or_context_scores_zero_without_calling_judge(monkeypatch):
@@ -54,3 +56,109 @@ def test_missing_answer_or_context_scores_zero_without_calling_judge(monkeypatch
     )
 
     assert [score.value for score in scores] == [0.0, 0.0, 0.0, 0.0]
+
+
+def _assessment(**overrides):
+    base = dict(
+        faithfulness=1.0,
+        answer_relevance=1.0,
+        context_utilization=1.0,
+        citation_correctness=1.0,
+        unsupported_claims=[],
+        missing_aspects=[],
+        citation_issues=[],
+        summary="ok",
+    )
+    base.update(overrides)
+    return answer_quality.AnswerQualityAssessment(**base)
+
+
+def _judge_returning(monkeypatch, assessment):
+    monkeypatch.setattr(
+        answer_quality,
+        "assess_answer_quality",
+        lambda *_args: answer_quality.AnswerQualityResult(
+            assessment=assessment, prompt_metadata={}
+        ),
+    )
+    monkeypatch.setattr(
+        answer_quality,
+        "settings",
+        SimpleNamespace(openai_chat_model="gen", openai_judge_model="judge"),
+    )
+
+
+def test_failure_mode_is_reported_as_its_own_score(monkeypatch):
+    """Databricks' failure taxonomy: a refusal is not a faithful answer to hide."""
+    _judge_returning(monkeypatch, _assessment(failure_mode="refusal"))
+
+    scores = answer_quality.answer_quality_metrics(
+        input={"question": "q"},
+        output={"answer": "The docs do not cover this.", "contexts": [{"c": 1}]},
+    )
+
+    failure = next(score for score in scores if score.name == "answer_failure_mode")
+    assert failure.value == "refusal"
+    assert scores[0].metadata["evaluator_model"] == "judge"
+    assert scores[0].metadata["evaluator_independent"] is True
+
+
+def test_failure_mode_defaults_to_none_for_older_judge_outputs():
+    assert _assessment().failure_mode == "none"
+
+
+def test_abstention_is_correct_only_when_expected(monkeypatch):
+    _judge_returning(monkeypatch, _assessment(failure_mode="refusal"))
+    output = {"answer": "Not in the docs.", "contexts": [{"c": 1}]}
+
+    expected_abstain = answer_quality.abstention_correct(
+        input={"question": "q"},
+        output=output,
+        expected_output={"expect_abstention": True},
+    )
+    expected_answer = answer_quality.abstention_correct(
+        input={"question": "q"},
+        output=output,
+        expected_output={"expect_abstention": False},
+    )
+
+    assert expected_abstain.value == 1.0
+    assert expected_answer.value == 0.0
+
+
+def test_judge_model_falls_back_to_generator_and_says_so(monkeypatch):
+    monkeypatch.setattr(
+        answer_quality,
+        "settings",
+        SimpleNamespace(openai_chat_model="gen", openai_judge_model=None),
+    )
+
+    assert answer_quality.judge_model() == "gen"
+    assert answer_quality.judge_is_independent() is False
+
+
+def test_both_evaluators_share_one_judge_call(monkeypatch):
+    calls = 0
+
+    def judge(question, answer, contexts):
+        nonlocal calls
+        calls += 1
+        return answer_quality.AnswerQualityResult(
+            assessment=_assessment(failure_mode="refusal"), prompt_metadata={}
+        )
+
+    monkeypatch.setattr(answer_quality, "assess_answer_quality", judge)
+    monkeypatch.setattr(
+        answer_quality,
+        "settings",
+        SimpleNamespace(openai_chat_model="gen", openai_judge_model="judge"),
+    )
+    answer_quality.forget_assessments()
+    output = {"answer": "Not covered.", "contexts": [{"citation": 1, "content": "c"}]}
+
+    answer_quality.answer_quality_metrics(input={"question": "q"}, output=output)
+    answer_quality.abstention_correct(
+        input={"question": "q"}, output=output, expected_output={"expect_abstention": True}
+    )
+
+    assert calls == 1

@@ -1,4 +1,8 @@
-"""Compare answer quality of single-pass and bounded two-hop retrieval."""
+"""Answer quality on the multi-aspect set, or abstention on the negative set.
+
+uv run python -m evals.run_answer_quality_experiment            # 16 cases
+uv run python -m evals.run_answer_quality_experiment --negative # abstentions
+"""
 
 import argparse
 import time
@@ -6,7 +10,13 @@ from typing import Any
 
 from langfuse import Langfuse
 
-from evals.answer_quality import answer_quality_metrics
+from evals import negative_cases
+from evals.answer_quality import (
+    abstention_correct,
+    answer_quality_metrics,
+    judge_is_independent,
+    judge_model,
+)
 from evals.evidence_coverage import (
     DATASET_NAME,
     complete_evidence_coverage,
@@ -159,7 +169,8 @@ def _metadata(mode: str) -> dict[str, Any]:
         "generation_top_k": GENERATION_TOP_K,
         "per_query_top_k": PER_QUERY_TOP_K if mode == "iterative" else None,
         "answer_model": settings.openai_chat_model,
-        "evaluator_model": settings.openai_chat_model,
+        "evaluator_model": judge_model(),
+        "evaluator_independent": judge_is_independent(),
         "evaluator_prompt": "doc-bot/answer-evaluator",
         "evaluator_prompt_version": (
             settings.answer_evaluator_prompt_version or "production"
@@ -170,7 +181,28 @@ def _metadata(mode: str) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compare-iterative", action="store_true")
+    parser.add_argument(
+        "--negative",
+        action="store_true",
+        help="run the unanswerable set and score whether the system abstained",
+    )
     args = parser.parse_args()
+    if args.negative:
+        dataset = langfuse.get_dataset(negative_cases.DATASET_NAME)
+        result = dataset.run_experiment(
+            name=f"negative-abstention-k{GENERATION_TOP_K}",
+            description=(
+                "Questions outside the corpus; the system should say the "
+                "documentation does not cover them."
+            ),
+            task=baseline_task,
+            metadata=_metadata("negative"),
+            evaluators=[abstention_correct, answer_quality_metrics],
+            max_concurrency=1,
+        )
+        print(result.format())
+        langfuse.flush()
+        return
     dataset = langfuse.get_dataset(DATASET_NAME)
     common = {
         "evaluators": [
