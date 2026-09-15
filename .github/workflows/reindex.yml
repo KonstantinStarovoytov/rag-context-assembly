@@ -1,0 +1,62 @@
+# Daily incremental re-index. Fetches every source page, re-embeds only the
+# ones whose content changed, records the build date in Qdrant for the
+# service, and commits the manifest so git history shows what changed when.
+# Pages that vanish from a vendor index are reported, not deleted: the run
+# fails and an issue is opened so a human decides.
+
+name: Reindex
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
+concurrency: reindex
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+      QDRANT_URL: ${{ secrets.QDRANT_URL }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      TRACING_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - run: uv sync --locked
+      - name: Reindex changed pages
+        id: reindex
+        run: |
+          set -o pipefail
+          uv run python -m src.reindex 2>&1 | tee reindex.log
+      - name: Commit manifest
+        if: always()
+        run: |
+          if git diff --quiet -- data/index-manifest.json && [ -z "$(git ls-files --others --exclude-standard data)" ]; then
+            echo "manifest unchanged"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/index-manifest.json
+          git commit -m "chore(index): reindex on $(date -u +%F) [skip ci]"
+          git push
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Reindex needs attention ($(date -u +%F))"
+          body="Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          \`\`\`
+          $(tail -n 40 reindex.log)
+          \`\`\`"
+          existing=$(gh issue list --label reindex --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh label create reindex --description "Scheduled re-index needs a human" --force
+            gh issue create --title "$title" --label reindex --body "$body"
+          fi

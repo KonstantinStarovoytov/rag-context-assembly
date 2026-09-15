@@ -120,15 +120,36 @@ ranked passages without generation, which is cheaper when the calling agent
 wants to reason over the documentation itself. `concise` trims each passage to
 300 characters so a first look costs little context; `detailed` returns full
 chunks. `product` scopes the search to `claude-code`, `cursor`, `codex` or
-`mcp`. Both results carry `index_snapshot`, the date from `INDEX_SNAPSHOT`, so
-callers know they are reading a snapshot rather than live docs; set it whenever
-the index is rebuilt. The iterative second retrieval round stays on the CLI and
+`mcp`. Both results carry `index_snapshot`, the date the re-index job last
+wrote to Qdrant (falling back to the `INDEX_SNAPSHOT` variable), so callers
+know they are reading a snapshot rather than live docs. The iterative second retrieval round stays on the CLI and
 REST surface only: it was measured as no better than one round, and the calling
 agent is already its own retry loop.
 
 Errors reach the model with their reason (`Question must not be empty`, or
 "backend temporarily unavailable … retry") rather than a bare tool failure, so
 it can correct the call instead of guessing.
+
+## Keeping the index fresh
+
+`.github/workflows/reindex.yml` runs `src/reindex.py` every morning (and on
+demand from the Actions tab). It fetches every source page, fingerprints the
+markdown, and re-embeds only the pages whose content changed; a day without
+changes costs a few HTTP requests and no embeddings. The fingerprints live in
+[data/index-manifest.json](data/index-manifest.json), so `git log` on that
+file is the history of what changed when. After a change the job records the
+build date in a one-point Qdrant collection (`agent_docs_meta`), which the
+service reports as `index_snapshot` without a redeploy, and runs a retrieval
+smoke check over the query-transform intents; a miss fails the run.
+
+Two things it deliberately does not do. It never deletes a page that vanished
+from a vendor's `llms.txt`: a rename looks identical to a removal, so the run
+fails and opens a GitHub issue instead. And it does not rebuild from scratch;
+`uv run python -m src.index_hybrid --recreate` stays the manual escape hatch.
+
+The workflow needs the repository secrets `OPENAI_API_KEY`, `COHERE_API_KEY`,
+`QDRANT_URL` and `QDRANT_API_KEY`. The first run indexes everything (there is
+no manifest yet) and takes a few minutes.
 
 ## Deploying to Render
 
