@@ -1,0 +1,53 @@
+# Render Blueprint: one free Docker web service. Secrets are entered in the
+# dashboard (sync: false); everything else is committed here. Render deploys
+# only after the GitHub checks pass, so the test workflow gates production.
+services:
+  - name: agent-docs-mcp
+    type: web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      # Bearer token every client sends; Render generates it, read it in the
+      # dashboard.
+      - key: API_TOKEN
+        generateValue: true
+      # The MCP transport answers 421 to Host headers it was not told about.
+      - key: API_ALLOWED_HOSTS
+        value: agent-docs-mcp.onrender.com
+      - key: TRACING_ENABLED
+        value: "true"
+      - key: RETRIEVAL_STRATEGY
+        value: hybrid
+      - key: RETRIEVAL_TOP_K
+        value: "10"
+      - key: PER_QUERY_TOP_K
+        value: "20"
+      - key: GENERATION_TOP_K
+        value: "8"
+      - key: TRANSLATE_NON_ENGLISH
+        value: "true"
+      - key: QDRANT_COLLECTION
+        value: agent_docs_v2
+      - key: QDRANT_HYBRID_COLLECTION
+        value: agent_docs_hybrid_v1
+      - key: API_RATE_LIMIT_PER_MINUTE
+        value: "60"
+      # Shown to MCP callers so they treat answers as a snapshot. Bump on re-index.
+      - key: INDEX_SNAPSHOT
+        value: "2026-09-15"

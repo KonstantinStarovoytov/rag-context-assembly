@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+# Pinned by digest so a moved tag cannot change the build; bump deliberately.
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim@sha256:7cf77f594be8042dab6daa9fe326f90962252268b4f120a7f5dccce4d947e6c1
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -23,7 +24,12 @@ RUN uv run python -c "from fastembed import SparseTextEmbedding; SparseTextEmbed
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Fly sets PORT; the default matches fly.toml's internal_port.
+# The server parses untrusted input; it does not need root. The fastembed
+# cache was written by root above, so hand it over too.
+RUN useradd --system --uid 1000 --no-create-home app && chown -R app:app /app
+USER app
+
+# Render sets PORT; the default is for local runs.
 ENV PORT=8080
 EXPOSE 8080
 

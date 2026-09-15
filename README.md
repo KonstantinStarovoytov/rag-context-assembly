@@ -68,6 +68,11 @@ MCP client cannot drift apart: both go through `src/service/core.py`.
 
 `API_TOKEN` is required: the process refuses to start without it, because every
 request spends OpenAI and Cohere credits. Send it as `Authorization: Bearer …`.
+One shared token is a deliberate choice for a single-owner deployment; it works
+with Claude Code, Cursor and the Claude API `authorization_token`, but not with
+claude.ai custom connectors, which require OAuth. `API_RATE_LIMIT_PER_MINUTE`
+(default 60) caps paid requests across the machine so a looping agent cannot
+run up the bill; over the cap the API answers 429 with `Retry-After`.
 
 ```bash
 docker compose up -d --build     # Qdrant plus the API on :8080
@@ -89,7 +94,7 @@ uses, so answers are identical:
 {
   "mcpServers": {
     "agent-docs": {
-      "url": "https://<app>.fly.dev/mcp/",
+      "url": "https://agent-docs-mcp.onrender.com/mcp/",
       "headers": { "Authorization": "Bearer <API_TOKEN>" }
     }
   }
@@ -109,44 +114,63 @@ Local, over stdio, with no HTTP server and no token:
 }
 ```
 
-`ask_docs(question, iterative=False)` returns the answer with its sources.
-`search_docs(query, limit)` returns ranked passages without generation, which is
-cheaper when the calling agent wants to reason over the documentation itself.
+`ask_docs(question)` returns the answer with its sources.
+`search_docs(query, limit=8, product=None, response_format="concise")` returns
+ranked passages without generation, which is cheaper when the calling agent
+wants to reason over the documentation itself. `concise` trims each passage to
+300 characters so a first look costs little context; `detailed` returns full
+chunks. `product` scopes the search to `claude-code`, `cursor`, `codex` or
+`mcp`. Both results carry `index_snapshot`, the date from `INDEX_SNAPSHOT`, so
+callers know they are reading a snapshot rather than live docs; set it whenever
+the index is rebuilt. The iterative second retrieval round stays on the CLI and
+REST surface only: it was measured as no better than one round, and the calling
+agent is already its own retry loop.
 
-## Deploying to [Fly.io](http://Fly.io)
+Errors reach the model with their reason (`Question must not be empty`, or
+"backend temporarily unavailable … retry") rather than a bare tool failure, so
+it can correct the call instead of guessing.
 
-The machine is stateless; the index lives in Qdrant Cloud, whose free 1 GB tier
-holds this corpus comfortably. That keeps the deployment portable and means a
-restart cannot lose the index.
+## Deploying to Render
+
+The container is stateless; the index lives in Qdrant Cloud, whose free 1 GB
+tier holds this corpus comfortably. A free Render web service runs the same
+image (measured at ~390 MB of its 512 MB after a search), so the deployment
+costs nothing and a restart cannot lose the index. [render.yaml](render.yaml)
+is the whole service definition.
 
 ```bash
 # 1. Point the local tooling at Qdrant Cloud and build the index there.
 #    QDRANT_URL=https://<cluster>.qdrant.io:6333 and QDRANT_API_KEY=… in .env
 uv run python -m src.index_hybrid --recreate
-
-# 2. Create the app and set secrets (never in fly.toml, which is committed).
-fly launch --no-deploy
-fly secrets szet \
-  OPENAI_API_KEY=… COHERE_API_KEY=… \
-  QDRANT_URL=https://<cluster>.qdrant.io:6333 QDRANT_API_KEY=… \
-  API_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-
-# 3. Deploy and verify.
-fly deploy
-curl https://<app>.fly.dev/health
 ```
 
-Langfuse tracing is off in `fly.toml`. To trace production traffic, set
-`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` as secrets and
-`TRACING_ENABLED=true`.
+2. In the Render dashboard: **New → Blueprint**, pick this repository. Render
+   reads `render.yaml`, creates the `agent-docs-mcp` service and asks for the
+   secrets marked `sync: false`: `OPENAI_API_KEY`, `COHERE_API_KEY`,
+   `QDRANT_URL`, `QDRANT_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
+   `LANGFUSE_SECRET_KEY` (or set `TRACING_ENABLED=false`). `API_TOKEN` is
+   generated; copy it from the service's Environment tab into your MCP client
+   config.
 
-Three deployment details worth knowing. The image pre-downloads the BM25 encoder
-so the first question does not pay for it. `min_machines_running = 1` keeps one
-machine warm, because scaling to zero drops in-flight MCP sessions and adds a
-model-loading cold start to the next question. And `API_ALLOWED_HOSTS` must name
-the public domain: the MCP transport blocks DNS rebinding by rejecting unknown
-`Host` headers with 421, so a deployment behind a real domain that is not listed
-answers 421 to every MCP call while `/health` and `/ask` still work.
+3. Verify:
+
+```bash
+curl https://agent-docs-mcp.onrender.com/health
+```
+
+Deployment details worth knowing. Render deploys `main` only after the GitHub
+CI workflow passes (`autoDeployTrigger: checksPass`). The image pre-downloads
+the BM25 encoder so the first question does not pay for it. A free service
+spins down after 15 minutes without traffic and takes about a minute to come
+back, so the first call after a pause is slow; an MCP client just sees a slow
+first tool call. Free instances get 750 hours a month per workspace, which a
+service that sleeps between uses never exhausts. And `API_ALLOWED_HOSTS` must
+name the public host: the MCP transport blocks DNS rebinding by rejecting
+unknown `Host` headers with 421, so if you rename the service or add a custom
+domain, update the variable; behind a domain only that domain is accepted,
+and localhost is allowed only when the variable is empty.
+
+The actions in CI are pinned by commit SHA and the base image by digest.
 
 ## Configuration
 
