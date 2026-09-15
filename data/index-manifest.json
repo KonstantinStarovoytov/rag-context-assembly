@@ -1,0 +1,185 @@
+{
+  "indexed_at": "2026-09-15",
+  "documents": {
+    "https://code.claude.com/docs/en/agent-sdk/mcp.md": {
+      "sha256": "c6c92f6d55a03b8c0dd198833b29885a7827441d834db438b83b0e33b37c38a8",
+      "chunks": 29,
+      "title": "Connect to external tools with MCP"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/plugins.md": {
+      "sha256": "c0f79d1b6ed8e32def8695828d264110c709300854177c4b1bb524bb1e0a06d6",
+      "chunks": 12,
+      "title": "Plugins in the SDK"
+    },
+    "https://code.claude.com/docs/en/agent-sdk/skills.md": {
+      "sha256": "a7027fa28304e8a2c44ab86a09b061b4ea235186568b9e99d59d0357afae8e78",
+      "chunks": 23,
+      "title": "Extend agents with skills"
+    },
+    "https://code.claude.com/docs/en/features-overview.md": {
+      "sha256": "fad6cc0b1ebf429fda686679b9f6472a58aeaae9efed344c1e43297e32c8d536",
+      "chunks": 18,
+      "title": "Extend Claude Code"
+    },
+    "https://code.claude.com/docs/en/mcp.md": {
+      "sha256": "ade771958f6052478788d24253254aa6c6e6c54a510da51681785f32c774740f",
+      "chunks": 72,
+      "title": "Connect Claude Code to tools via MCP"
+    },
+    "https://code.claude.com/docs/en/memory.md": {
+      "sha256": "f212449ea6fbdb88bea34ad85c967ae3681470bdbd376ac84bda7f535029e677",
+      "chunks": 28,
+      "title": "How Claude remembers your project"
+    },
+    "https://code.claude.com/docs/en/plugins.md": {
+      "sha256": "6f9f15a184ff8008208afd690e12488c45941d16844c2fc7b3f455ce0825daca",
+      "chunks": 28,
+      "title": "Create plugins"
+    },
+    "https://code.claude.com/docs/en/skills.md": {
+      "sha256": "41d2fa0c7cd609fc74cf6a1c2ba78b8e9a229a95e2593a22a15acac53ef125d1",
+      "chunks": 59,
+      "title": "Extend Claude with skills"
+    },
+    "https://code.claude.com/docs/en/sub-agents.md": {
+      "sha256": "0a2d6c0e7e546f541f62dafc93152f6df98272aba998edff3772186d589cd1e2",
+      "chunks": 59,
+      "title": "Create custom subagents"
+    },
+    "https://cursor.com/docs/agent/prompting.md": {
+      "sha256": "438f77bf7295d28002c81ce0658134ce7debe6dfa76bae926058b918ed378410",
+      "chunks": 8,
+      "title": "Prompting"
+    },
+    "https://cursor.com/docs/customize-cursor.md": {
+      "sha256": "9ae0878d97465512ad29459f5406538ec7b427dfbaa39e1cc95d3deb447f363e",
+      "chunks": 11,
+      "title": "Customize Cursor"
+    },
+    "https://cursor.com/docs/hooks.md": {
+      "sha256": "7294a2d63b19d79a5283c948afe174cba8b06a7585563d34a2c41b90f5df0d39",
+      "chunks": 52,
+      "title": "Hooks"
+    },
+    "https://cursor.com/docs/mcp.md": {
+      "sha256": "c8fe6bb4d56d582f4898deac48085b3c7308f8fc3376133e5ce1edf51e57d13f",
+      "chunks": 35,
+      "title": "Mcp"
+    },
+    "https://cursor.com/docs/plugins.md": {
+      "sha256": "68ca8f70e5bfa6212a802f0dd623027ca69ce0b28db85edb09e01dd87faf9de0",
+      "chunks": 35,
+      "title": "Plugins"
+    },
+    "https://cursor.com/docs/rules.md": {
+      "sha256": "044b5134a59f74dea99ec1a273ed87e96ed44dc6c7fc7b154417d8108833c030",
+      "chunks": 35,
+      "title": "Rules"
+    },
+    "https://cursor.com/docs/skills.md": {
+      "sha256": "5ccb25304f16e82a7f58c0241a0a16a072adb33f7697e43c5704c46738e002ac",
+      "chunks": 28,
+      "title": "Skills"
+    },
+    "https://cursor.com/docs/subagents.md": {
+      "sha256": "187b052042c53a4ce32375ca7043b1f0e1a31ff8f735087880205a8e22cb1d36",
+      "chunks": 43,
+      "title": "Subagents"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md": {
+      "sha256": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e",
+      "chunks": 9,
+      "title": "Custom instructions with AGENTS.md"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/rules.md": {
+      "sha256": "04c837d168686d94e4fce70cac20e40fa6e5a7bc07047938dc699edcd546d5d3",
+      "chunks": 8,
+      "title": "Rules"
+    },
+    "https://learn.chatgpt.com/docs/agent-configuration/subagents.md": {
+      "sha256": "41dc7da16eb5a76d61e020bb6c553844c6c9f458aa5fb1107ab138a82782a245",
+      "chunks": 16,
+      "title": "Subagents"
+    },
+    "https://learn.chatgpt.com/docs/build-skills.md": {
+      "sha256": "60b5a6b9f9bb1231a4cb446f26f562dbaaba5d21142ecfb91481a4cf9cc293ae",
+      "chunks": 10,
+      "title": "Build skills"
+    },
+    "https://learn.chatgpt.com/docs/configuration.md": {
+      "sha256": "c034411d817d6cc5bc12c75526a0e9c15bcfcae9d6429a630363fa710db00f6a",
+      "chunks": 2,
+      "title": "Configuration"
+    },
+    "https://learn.chatgpt.com/docs/customization/overview.md": {
+      "sha256": "e4f466bb13521bc8d4e193962192c45319d5abc0cb58875d4a7eed2a9f9a20d6",
+      "chunks": 9,
+      "title": "Customization"
+    },
+    "https://learn.chatgpt.com/docs/extend/mcp.md": {
+      "sha256": "41f531ed9200f16cda4519d632e42589c40f50671bd370ce45cf8f1ebf67fa2d",
+      "chunks": 15,
+      "title": "Model Context Protocol"
+    },
+    "https://learn.chatgpt.com/docs/hooks.md": {
+      "sha256": "6b4c549c4f1df78e802f289151e54f7677128b8a9929912afb7e8ecd975d2ce9",
+      "chunks": 37,
+      "title": "Hooks"
+    },
+    "https://learn.chatgpt.com/docs/plugins.md": {
+      "sha256": "14e58dce013fbd30f99ea324caf3cf012804bb8c4ee12a768b2ce6ab4c1886bb",
+      "chunks": 14,
+      "title": "Plugins"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/develop/build-client.md": {
+      "sha256": "68db92dd2b9ad07afd1a51259312152df0db8b55b8c4af65daaf019d4901848e",
+      "chunks": 107,
+      "title": "Build an MCP client"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server.md": {
+      "sha256": "760b601e6d76cd8abfa9f4d6677b62c26cfc09f4219dc1830cc78150629e54a9",
+      "chunks": 96,
+      "title": "Build an MCP server"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro.md": {
+      "sha256": "8c4b6d50834e3147518b8d857e51040489c66c4af71635ce295c85a567c8409b",
+      "chunks": 7,
+      "title": "What is the Model Context Protocol (MCP)?"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture.md": {
+      "sha256": "c35ae31222f730ce87adf9344172f8406c51021a34e8c248269fa50fe5e34ae1",
+      "chunks": 14,
+      "title": "Architecture overview"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/learn/client-concepts.md": {
+      "sha256": "768a7b253473a03f18617fd71a555739beca5f3239527971abd534db7f377c59",
+      "chunks": 10,
+      "title": "Understanding MCP clients"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/learn/server-concepts.md": {
+      "sha256": "4d6bcdd8a919ef84546fe41d08c8b33648228b9766979c9091aa98a0c64c5771",
+      "chunks": 10,
+      "title": "Understanding MCP servers"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/learn/versioning.md": {
+      "sha256": "f00269fadddff0f5500bdfda7169d572d2adf3131d239a69c1465d541d7f6eb6",
+      "chunks": 5,
+      "title": "Versioning"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/sdk.md": {
+      "sha256": "d988c1e95670ef5cea143c5cae8baa12a1f5869e1f4244bc788878d881098d71",
+      "chunks": 6,
+      "title": "SDKs"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/authorization.md": {
+      "sha256": "cd7a96da60157cc26532bca97c88a63d8c07136296f8724d8c38f4a0d3993de1",
+      "chunks": 22,
+      "title": "Understanding Authorization in MCP"
+    },
+    "https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md": {
+      "sha256": "d0fc0dc7ac40df6fce85ef036b3ac5d9a1b8ae87b25a674e0a2ec866217745fe",
+      "chunks": 24,
+      "title": "Security Best Practices"
+    }
+  }
+}
