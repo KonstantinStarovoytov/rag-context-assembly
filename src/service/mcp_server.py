@@ -198,7 +198,7 @@ def ask_docs(
             )
             for source in result.sources
         ],
-        index_snapshot=settings.index_snapshot,
+        index_snapshot=core.index_snapshot(),
     )
 
 
@@ -254,7 +254,7 @@ def search_docs(
             )
             for passage in passages
         ],
-        index_snapshot=settings.index_snapshot,
+        index_snapshot=core.index_snapshot(),
     )
 
 

@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import NAMESPACE_URL, uuid5
 
 from functools import cache
@@ -21,7 +22,7 @@ def langfuse_client() -> Langfuse:
     )
 
 
-INTENTS = [
+INTENTS: list[dict[str, Any]] = [
     {
         "id": "cursor-python-rules",
         "relevant": [

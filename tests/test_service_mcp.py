@@ -178,7 +178,7 @@ async def test_search_docs_maps_product_to_vendor(stub_pipeline: None) -> None:
 async def test_results_carry_index_snapshot(
     stub_pipeline: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "index_snapshot", "2026-09-01")
+    monkeypatch.setattr(core, "index_snapshot", lambda: "2026-09-01")
     async with Client(build_mcp_server()) as client:
         asked = await client.call_tool("ask_docs", {"question": "q"})
         searched = await client.call_tool("search_docs", {"query": "q"})

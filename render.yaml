@@ -48,6 +48,7 @@ services:
         value: agent_docs_hybrid_v1
       - key: API_RATE_LIMIT_PER_MINUTE
         value: "60"
-      # Shown to MCP callers so they treat answers as a snapshot. Bump on re-index.
+      # Fallback for index_snapshot until the Reindex workflow has written the
+      # build date to Qdrant.
       - key: INDEX_SNAPSHOT
         value: "2026-09-15"
