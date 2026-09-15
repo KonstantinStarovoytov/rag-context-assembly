@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from langchain_openai import ChatOpenAI
 
 from src.config import settings
+from src.rag.llm import chat_model
 from src.observability import model_config, prompt_context
 from src.prompts.managed import get_chat_prompt
 from src.rag.context_selector import select_generation_context
@@ -93,13 +93,7 @@ def generate_from_selected(
         context=context,
     )
 
-    # Pinned like every other call site, but this alone does not make answers
-    # reproducible: repeated runs over an identical context still differ.
-    model = ChatOpenAI(
-        api_key=settings.openai_api_key,
-        model=settings.openai_chat_model,
-        temperature=0,
-    )
+    model = chat_model()
 
     with prompt_context(prompt):
         response = model.invoke(

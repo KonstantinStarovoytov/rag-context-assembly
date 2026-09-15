@@ -44,7 +44,9 @@ def stub_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
             iterative=False,
         )
 
-    def search(query: str, *, limit: int | None = None) -> list[core.Passage]:
+    def search(
+        query: str, *, limit: int | None = None, vendor: str | None = None
+    ) -> list[core.Passage]:
         return [
             core.Passage(
                 rank=1,
@@ -52,7 +54,8 @@ def stub_pipeline(monkeypatch: pytest.MonkeyPatch) -> None:
                 heading="Overview",
                 url="https://docs.test/skills.md",
                 score=0.5,
-                content=f"passage for {query} limit={limit}",
+                content=f"passage for {query} limit={limit} vendor={vendor}"
+                + "x" * 400,
             )
         ]
 
@@ -83,23 +86,43 @@ async def test_tools_advertise_runlayer_metadata(stub_pipeline: None) -> None:
     assert ask.annotations.read_only_hint is True
     assert ask.annotations.destructive_hint is False
     assert ask.annotations.idempotent_hint is True
-    assert ask.annotations.open_world_hint is True
-    assert "Do not use" in (ask.description or "")
+    # The index is a closed snapshot, not the open web.
+    assert ask.annotations.open_world_hint is False
+    assert "Not for" in (ask.description or "")
+    assert "snapshot" in (ask.description or "")
     assert "Errors:" in (search.description or "")
 
     question = ask.input_schema["properties"]["question"]
     assert question["minLength"] == 1
     assert question["maxLength"] == 500
     assert "description" in question
-    assert "description" in ask.input_schema["properties"]["iterative"]
+    # Measured as useless for the caller; the agent is its own retry loop.
+    assert "iterative" not in ask.input_schema["properties"]
 
     limit = search.input_schema["properties"]["limit"]
     assert limit["minimum"] == 1
-    assert limit["maximum"] == 50
+    assert limit["maximum"] == 20
+    assert "tokens" in limit["description"]
+    product = search.input_schema["properties"]["product"]
+    assert {"claude-code", "cursor", "codex", "mcp"} <= set(product["anyOf"][0]["enum"])
+    assert "concise" in str(search.input_schema["properties"]["response_format"])
     assert ask.output_schema is not None
     assert "answer" in ask.output_schema["properties"]
+    assert "iterative" not in ask.output_schema["properties"]
+    assert "index_snapshot" in ask.output_schema["properties"]
     assert search.output_schema is not None
     assert "passages" in search.output_schema["properties"]
+    assert "index_snapshot" in search.output_schema["properties"]
+
+
+@pytest.mark.anyio
+async def test_server_reports_a_version(stub_pipeline: None) -> None:
+    async with Client(build_mcp_server()) as client:
+        info = client.server_info
+
+    assert info is not None
+    # Read from pyproject: the project is not installed as a package.
+    assert info.version == "0.1.0"
 
 
 @pytest.mark.anyio
@@ -120,7 +143,48 @@ async def test_search_docs_passes_limit_through(stub_pipeline: None) -> None:
 
     payload = result.structured_content
     assert payload is not None
-    assert payload["passages"][0]["content"] == "passage for hooks limit=3"
+    assert payload["passages"][0]["content"].startswith("passage for hooks limit=3")
+
+
+@pytest.mark.anyio
+async def test_search_docs_is_concise_by_default(stub_pipeline: None) -> None:
+    """A 20-passage detailed answer is ~15k tokens; concise trims each chunk."""
+    async with Client(build_mcp_server()) as client:
+        concise = await client.call_tool("search_docs", {"query": "hooks"})
+        detailed = await client.call_tool(
+            "search_docs", {"query": "hooks", "response_format": "detailed"}
+        )
+
+    short = concise.structured_content["passages"][0]  # type: ignore[index]
+    full = detailed.structured_content["passages"][0]  # type: ignore[index]
+    assert len(short["content"]) <= 300 + len("…")
+    assert short["truncated"] is True
+    assert full["content"].endswith("x" * 400)
+    assert full["truncated"] is False
+
+
+@pytest.mark.anyio
+async def test_search_docs_maps_product_to_vendor(stub_pipeline: None) -> None:
+    async with Client(build_mcp_server()) as client:
+        result = await client.call_tool(
+            "search_docs", {"query": "rules", "product": "codex"}
+        )
+
+    content = result.structured_content["passages"][0]["content"]  # type: ignore[index]
+    assert "vendor=openai" in content
+
+
+@pytest.mark.anyio
+async def test_results_carry_index_snapshot(
+    stub_pipeline: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "index_snapshot", "2026-09-01")
+    async with Client(build_mcp_server()) as client:
+        asked = await client.call_tool("ask_docs", {"question": "q"})
+        searched = await client.call_tool("search_docs", {"query": "q"})
+
+    assert asked.structured_content["index_snapshot"] == "2026-09-01"  # type: ignore[index]
+    assert searched.structured_content["index_snapshot"] == "2026-09-01"  # type: ignore[index]
 
 
 @pytest.mark.anyio
@@ -136,6 +200,26 @@ async def test_rejected_question_surfaces_as_tool_error(
         result = await client.call_tool("ask_docs", {"question": " "})
 
     assert result.is_error is True
+    # The model must see the reason, not a bare "Error executing tool".
+    assert "Question must not be empty" in result.content[0].text  # type: ignore[union-attr]
+
+
+@pytest.mark.anyio
+async def test_backend_failure_tells_the_model_to_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def explode(*_args: Any, **_kwargs: Any) -> core.Answer:
+        raise RuntimeError("openai down")
+
+    monkeypatch.setattr(core, "answer", explode)
+
+    async with Client(build_mcp_server()) as client:
+        result = await client.call_tool("ask_docs", {"question": "q"})
+
+    assert result.is_error is True
+    text = result.content[0].text  # type: ignore[union-attr]
+    assert "unavailable" in text and "retry" in text
+    assert "openai down" not in text
 
 
 def _free_port() -> int:

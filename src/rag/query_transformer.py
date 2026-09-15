@@ -1,9 +1,8 @@
 from typing import cast
 
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from src.config import settings
+from src.rag.llm import chat_model
 from src.observability import model_config
 from src.prompts import load_prompt
 
@@ -34,11 +33,7 @@ class QueryTransformResult(BaseModel):
 
 class QueryTransformer:
     def __init__(self) -> None:
-        model = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model=settings.openai_chat_model,
-            temperature=0,
-        )
+        model = chat_model()
 
         self.model = model.with_structured_output(QueryTransformResult)
 

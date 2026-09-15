@@ -108,3 +108,62 @@ def test_mcp_endpoint_requires_token(client: Any) -> None:
     )
 
     assert response.status_code == 401
+
+
+def test_startup_fails_when_tracing_is_on_without_langfuse_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Otherwise /health says ok while every paid request raises."""
+    monkeypatch.setattr(auth, "required_token", lambda: TOKEN)
+    monkeypatch.setattr(app_module.settings, "tracing_enabled", True)
+    monkeypatch.setattr(app_module.settings, "langfuse_public_key", None)
+    monkeypatch.setattr(app_module.settings, "langfuse_secret_key", None)
+
+    started = False
+    with pytest.raises(ValueError, match="LANGFUSE_PUBLIC_KEY"):
+        with TestClient(app_module.create_app()):
+            started = True
+
+    assert started is False, "must fail on startup, not on shutdown flush"
+
+
+def test_requests_over_the_rate_limit_get_429(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(core, "search", lambda *_a, **_k: [])
+    monkeypatch.setattr(app_module.settings, "api_rate_limit_per_minute", 2)
+    app_module.reset_rate_limiter()
+
+    codes = [
+        client.post(
+            "/search",
+            json={"query": "hooks"},
+            headers={"Authorization": f"Bearer {TOKEN}"},
+        ).status_code
+        for _ in range(3)
+    ]
+
+    assert codes == [200, 200, 429]
+
+
+def test_health_is_not_rate_limited(
+    client: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(app_module.settings, "api_rate_limit_per_minute", 1)
+    app_module.reset_rate_limiter()
+
+    codes = [client.get("/health").status_code for _ in range(3)]
+
+    assert codes == [200, 200, 200]
+
+
+def test_public_host_does_not_keep_localhost(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Behind a real domain only that domain is a valid Host or Origin."""
+    monkeypatch.setattr(app_module.settings, "api_allowed_hosts", "docs.example.test")
+
+    security = app_module._transport_security()
+
+    assert security is not None
+    assert not any("localhost" in host for host in security.allowed_hosts)
+    assert not any("localhost" in origin for origin in security.allowed_origins)
+    assert "docs.example.test" in security.allowed_hosts

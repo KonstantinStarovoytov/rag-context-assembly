@@ -77,7 +77,9 @@ def answer(
     )
 
 
-def search(question: str, *, limit: int | None = None) -> list[Passage]:
+def search(
+    question: str, *, limit: int | None = None, vendor: str | None = None
+) -> list[Passage]:
     """Retrieval without generation, for callers that want to read the sources."""
     question = _validated_question(question)
     k = limit if limit is not None else settings.retrieval_top_k
@@ -87,7 +89,9 @@ def search(question: str, *, limit: int | None = None) -> list[Passage]:
         raise QuestionRejected("limit must be at most 50")
 
     passages = []
-    for rank, result in enumerate(search_hybrid(query=question, k=k), start=1):
+    for rank, result in enumerate(
+        search_hybrid(query=question, k=k, vendor=vendor), start=1
+    ):
         metadata = result.document.metadata
         heading = " > ".join(
             value

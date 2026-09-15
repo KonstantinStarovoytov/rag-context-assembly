@@ -3,10 +3,10 @@
 import json
 from typing import Literal, cast
 
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, model_validator
 
 from src.config import settings
+from src.rag.llm import chat_model
 from src.observability import model_config, prompt_context
 from src.prompts.managed import get_chat_prompt
 from src.rag.multi_query_retriever import _document_key
@@ -59,11 +59,7 @@ class EvidencePlanner:
             }
             for r in results
         ]
-        model = ChatOpenAI(
-            api_key=settings.openai_api_key,
-            model=settings.openai_chat_model,
-            temperature=0,
-        )
+        model = chat_model()
         prompt = get_chat_prompt(
             "evidence-planner",
             version=settings.evidence_planner_prompt_version,
@@ -83,11 +79,7 @@ class EvidencePlanner:
 
 
 def translate_query(query: str) -> str:
-    model = ChatOpenAI(
-        api_key=settings.openai_api_key,
-        model=settings.openai_chat_model,
-        temperature=0,
-    )
+    model = chat_model()
     prompt = get_chat_prompt(
         "translate",
         version=settings.translate_prompt_version,

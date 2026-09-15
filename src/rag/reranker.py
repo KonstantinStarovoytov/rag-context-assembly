@@ -56,10 +56,16 @@ def _rerank_trace_output(results: list[RerankResult]) -> list[dict[str, object]]
     ]
 
 
+# Cohere's default is 300 s; reranking 20 chunks takes about a second.
+RERANK_TIMEOUT_SECONDS = 30.0
+
+
 class CohereReranker:
     def __init__(self) -> None:
         self.client = cohere.ClientV2(
             api_key=settings.cohere_api_key.get_secret_value(),
+            timeout=RERANK_TIMEOUT_SECONDS,
+            max_retries=1,
         )
 
         self.model = settings.cohere_rerank_model

@@ -4,6 +4,8 @@ Both live in one deployment so a single URL and a single token serve both an
 `/ask` caller and an MCP client pointed at `/mcp`.
 """
 
+import threading
+import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -17,7 +19,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from src.config import settings
-from src.observability import flush, trace_url
+from src.observability import flush, get_langfuse, trace_url
 from src.rag.pipeline import RetrievalStrategy
 from src.service import auth, core
 from src.service.mcp_server import build_mcp_server
@@ -71,8 +73,32 @@ def _allowed_hosts() -> list[str]:
     ]
 
 
-LOCAL_HOSTS = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
-LOCAL_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*"]
+class _RateLimiter:
+    """Fixed one-minute window over the whole server; enough for one machine."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._window_start = 0.0
+        self._count = 0
+
+    def allow(self, limit: int, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            if now - self._window_start >= 60:
+                self._window_start = now
+                self._count = 0
+            if self._count >= limit:
+                return False
+            self._count += 1
+            return True
+
+
+_rate_limiter = _RateLimiter()
+
+
+def reset_rate_limiter() -> None:
+    global _rate_limiter
+    _rate_limiter = _RateLimiter()
 
 
 def _transport_security() -> TransportSecuritySettings | None:
@@ -80,16 +106,17 @@ def _transport_security() -> TransportSecuritySettings | None:
 
     It answers 421 to unknown `Host` headers to block DNS rebinding, so a
     deployment behind a real domain must name that domain. Returning None keeps
-    the library default, which allows localhost only.
+    the library default, which allows localhost only. Behind a domain, only
+    that domain is valid: localhost is not added on top.
     """
     hosts = _allowed_hosts()
     if not hosts:
         return None
 
-    allowed_hosts = list(LOCAL_HOSTS)
-    allowed_origins = list(LOCAL_ORIGINS)
+    allowed_hosts: list[str] = []
+    allowed_origins: list[str] = []
     for host in hosts:
-        # Fly sends the bare domain; a proxy may append a port.
+        # Hosts usually send the bare domain; a proxy may append a port.
         allowed_hosts += [host, f"{host}:*"]
         allowed_origins += [f"https://{host}", f"https://{host}:*"]
 
@@ -114,15 +141,19 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
-        # Fail at startup, not on the first paying request.
+        # Fail at startup, not on the first paying request: a missing token or
+        # tracing enabled without Langfuse keys would otherwise leave /health
+        # green while every tool call raises.
         auth.required_token()
+        if settings.tracing_enabled:
+            get_langfuse()
         # The MCP transport keeps its own task group; it must be started here.
         async with mcp_app.router.lifespan_context(mcp_app):
             yield
         flush()
 
     app = FastAPI(
-        title="rag-context-assembly",
+        title="agent-docs-mcp",
         description=(
             "Hybrid RAG over the official Claude, Cursor, Codex and MCP "
             "documentation. The same pipeline is served as an MCP server at /mcp."
@@ -142,11 +173,20 @@ def create_app() -> FastAPI:
                 status_code=401,
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        if not _rate_limiter.allow(settings.api_rate_limit_per_minute):
+            return JSONResponse(
+                {"detail": "Rate limit exceeded; retry in a minute"},
+                status_code=429,
+                headers={"Retry-After": "60"},
+            )
         return await call_next(request)
 
     @app.get("/health")
-    def health() -> dict[str, Any]:
-        """Liveness only: it must not call paid models or Qdrant."""
+    async def health() -> dict[str, Any]:
+        """Liveness only: it must not call paid models or Qdrant.
+
+        Async so it never waits on the thread pool the tools run in.
+        """
         return {
             "status": "ok",
             "strategy": settings.retrieval_strategy,
