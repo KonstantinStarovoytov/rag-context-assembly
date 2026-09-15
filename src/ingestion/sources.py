@@ -6,7 +6,12 @@ class SourceConfig:
     vendor: str
     product: str
     index_url: str
+    # Each pattern must match the end of exactly one URL in llms.txt; the
+    # loader refuses to run otherwise, so a vendor's rename is loud, not silent.
     include: tuple[str, ...]
+    # For docs published per spec version under `<prefix><YYYY-MM-DD>/`: the
+    # newest dated version is chosen at load time and patterns are relative to it.
+    versioned_prefix: str | None = None
 
 
 ANTHROPIC = SourceConfig(
@@ -14,12 +19,14 @@ ANTHROPIC = SourceConfig(
     product="claude-code",
     index_url="https://code.claude.com/docs/llms.txt",
     include=(
-        "/features-overview.md",
-        "/sub-agents.md",
-        "/skills.md",
-        "/plugins.md",
-        "/mcp.md",
-        "/memory.md",
+        "/docs/en/features-overview.md",
+        "/docs/en/sub-agents.md",
+        "/docs/en/skills.md",
+        "/docs/en/plugins.md",
+        "/docs/en/mcp.md",
+        "/docs/en/memory.md",
+        "/docs/en/hooks.md",
+        "/docs/en/hooks-guide.md",
     ),
 )
 
@@ -63,17 +70,18 @@ MCP = SourceConfig(
     vendor="model-context-protocol",
     product="mcp",
     index_url="https://modelcontextprotocol.io/llms.txt",
+    versioned_prefix="/docs/",
     include=(
-        "/docs/2026-07-28/getting-started/intro.md",
-        "/docs/2026-07-28/learn/architecture.md",
-        "/docs/2026-07-28/learn/server-concepts.md",
-        "/docs/2026-07-28/learn/client-concepts.md",
-        "/docs/2026-07-28/learn/versioning.md",
-        "/docs/2026-07-28/develop/build-server.md",
-        "/docs/2026-07-28/develop/build-client.md",
-        "/docs/2026-07-28/sdk.md",
-        "/docs/2026-07-28/tutorials/security/authorization.md",
-        "/docs/2026-07-28/tutorials/security/security_best_practices.md",
+        "/getting-started/intro.md",
+        "/learn/architecture.md",
+        "/learn/server-concepts.md",
+        "/learn/client-concepts.md",
+        "/learn/versioning.md",
+        "/develop/build-server.md",
+        "/develop/build-client.md",
+        "/sdk.md",
+        "/tutorials/security/authorization.md",
+        "/tutorials/security/security_best_practices.md",
     ),
 )
 

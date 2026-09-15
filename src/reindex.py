@@ -6,6 +6,7 @@ and no embeddings. Pages that vanish from a vendor's index are reported, not
 deleted: a rename looks the same as a removal, and that is a human decision.
 """
 
+import argparse
 import hashlib
 import json
 import sys
@@ -105,6 +106,12 @@ def diff(manifest: Manifest, documents: list[SourceDocument]) -> Plan:
     return Plan(added=added, changed=changed, unchanged=unchanged, missing=missing)
 
 
+def orphans(indexed_sources: set[str], documents: list[SourceDocument]) -> list[str]:
+    """Sources still in the index that no config selects any more."""
+    fetched = {document.url for document in documents}
+    return sorted(indexed_sources - fetched)
+
+
 def apply(
     plan: Plan,
     manifest: Manifest,
@@ -146,7 +153,7 @@ def _matches_expected(hit: dict[str, str], expected: dict[str, str]) -> bool:
         headings = " > ".join(
             hit.get(key, "") for key in ("h1", "h2", "h3") if hit.get(key)
         )
-        if heading_contains not in headings:
+        if heading_contains.lower() not in headings.lower():
             return False
 
     return True
@@ -156,14 +163,20 @@ def smoke_failures(
     intents: list[dict[str, Any]],
     search: Callable[[str], list[dict[str, str]]],
 ) -> list[str]:
-    """Intent ids whose expected page/section is not among the top hits."""
+    """Intent ids with no relevant section among the top hits.
+
+    `relevant` lists alternatives; one hit matching any of them is enough, the
+    same hit@k rule the retrieval evals use.
+    """
     failures: list[str] = []
     for intent in intents:
         hits = search(intent["variants"]["clean_en"])
-        for expected in intent["relevant"]:
-            if not any(_matches_expected(hit, expected) for hit in hits):
-                failures.append(intent["id"])
-                break
+        if not any(
+            _matches_expected(hit, expected)
+            for hit in hits
+            for expected in intent["relevant"]
+        ):
+            failures.append(intent["id"])
     return failures
 
 
@@ -205,6 +218,31 @@ def _delete_source(url: str) -> None:
 
 def _add_chunks(chunks: list[Document]) -> None:
     get_hybrid_vector_store().add_documents(chunks)
+
+
+def _indexed_sources() -> set[str]:
+    """Every distinct `metadata.source` in the hybrid collection."""
+    client = get_qdrant_client()
+    sources: set[str] = set()
+    try:
+        offset = None
+        while True:
+            points, offset = client.scroll(
+                settings.qdrant_hybrid_collection,
+                limit=256,
+                offset=offset,
+                with_payload=["metadata.source"],
+                with_vectors=False,
+            )
+            for point in points:
+                payload = point.payload or {}
+                source = payload.get("metadata", {}).get("source")
+                if source:
+                    sources.add(str(source))
+            if offset is None:
+                return sources
+    finally:
+        client.close()
 
 
 def write_meta(manifest: Manifest) -> None:
@@ -252,12 +290,35 @@ def _search(query: str) -> list[dict[str, str]]:
     ]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     from evals.seed_query_transform_dataset import INTENTS
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="Delete indexed pages that no source config selects any more "
+        "(after a deliberate change to sources.py).",
+    )
+    args = parser.parse_args(argv)
 
     manifest = load_manifest()
     documents = load_all_sources()
     plan = diff(manifest, documents)
+
+    if args.prune:
+        stale = orphans(_indexed_sources(), documents)
+        print(f"prune: {len(stale)} orphaned pages")
+        for url in stale:
+            print(f"  delete {url}")
+            _delete_source(url)
+        manifest = Manifest(
+            indexed_at=manifest.indexed_at,
+            documents={u: e for u, e in manifest.documents.items() if u not in stale},
+        )
+        plan = diff(manifest, documents)
+        if not plan.to_index:
+            save_manifest(manifest)
     print(
         f"added={len(plan.added)} changed={len(plan.changed)} "
         f"unchanged={len(plan.unchanged)} missing={len(plan.missing)}"
