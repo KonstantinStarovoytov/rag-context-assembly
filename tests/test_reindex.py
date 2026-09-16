@@ -3,6 +3,7 @@
 from datetime import date
 from typing import Any
 
+import pytest
 from langchain_core.documents import Document
 
 from src import reindex
@@ -207,3 +208,18 @@ def test_orphans_are_indexed_sources_no_longer_fetched() -> None:
     documents = [_doc("u/keep", "k"), _doc("u/new", "n")]
 
     assert reindex.orphans(indexed, documents) == ["u/other-old", "u/sdk-page"]
+
+
+def test_fingerprint_changes_when_the_chunker_logic_version_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A chunker-logic change (cleaning rules, prefix format) must invalidate
+    every stored fingerprint so the next reindex re-embeds everything, even
+    though the fetched source markdown itself did not change."""
+    import src.ingestion.chunker as chunker_module
+
+    before = reindex.fingerprint("same content")
+    monkeypatch.setattr(chunker_module, "CHUNKER_VERSION", "next-version")
+    after = reindex.fingerprint("same content")
+
+    assert before != after

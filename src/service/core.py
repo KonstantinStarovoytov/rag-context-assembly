@@ -155,7 +155,7 @@ def search(
                 heading=heading,
                 url=metadata.get("source", ""),
                 score=result.score,
-                content=result.document.page_content,
+                content=metadata.get("raw_content", result.document.page_content),
             )
         )
     return passages

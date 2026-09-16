@@ -134,5 +134,5 @@ class CohereReranker:
             f"Title: {metadata.get('title', '')}\n"
             f"Section: {heading}\n"
             f"Product: {metadata.get('product', '')}\n\n"
-            f"{document.page_content}"
+            f"{metadata.get('raw_content', document.page_content)}"
         )

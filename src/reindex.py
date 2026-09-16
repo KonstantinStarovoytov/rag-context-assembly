@@ -59,10 +59,17 @@ def fingerprint(content: str) -> str:
     """Hash of the markdown with cosmetic differences removed.
 
     CRLF and trailing spaces change between CDN nodes and deploys; they must
-    not trigger a re-embed.
+    not trigger a re-embed. The chunker's own logic version is folded in, so
+    a cleaning-rule or contextual-prefix change invalidates every stored
+    fingerprint and the next run re-embeds everything, even though the
+    fetched source markdown is unchanged. Read lazily (not import-time) so
+    tests can monkeypatch it.
     """
+    from src.ingestion.chunker import CHUNKER_VERSION
+
     lines = (line.rstrip() for line in content.replace("\r\n", "\n").split("\n"))
-    return hashlib.sha256("\n".join(lines).encode()).hexdigest()
+    normalized = CHUNKER_VERSION + "\n" + "\n".join(lines)
+    return hashlib.sha256(normalized.encode()).hexdigest()
 
 
 def load_manifest(path: Path = MANIFEST_PATH) -> Manifest:
