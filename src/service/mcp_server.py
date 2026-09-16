@@ -10,10 +10,13 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
+import openai
+from cohere.errors.too_many_requests_error import TooManyRequestsError
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field
+from qdrant_client.http.exceptions import ResponseHandlingException, UnexpectedResponse
 
 from src.config import settings
 from src.observability import flush
@@ -148,10 +151,28 @@ def _tool_error(error: Exception) -> ToolError:
     """Turn a pipeline failure into a message the model can act on.
 
     Anything that is not a `ToolError` reaches the client as a bare "Error
-    executing tool" with the real cause hidden in the server log.
+    executing tool" with the real cause hidden in the server log. The advice
+    has to match the cause: an agent will do what the message says, and a
+    retry against a monthly quota or a suspended cluster only burns the
+    OpenAI calls (translate, embedding) that were already paid before rerank.
     """
     if isinstance(error, core.QuestionRejected):
         return ToolError(str(error))
+    if isinstance(error, TooManyRequestsError):
+        return ToolError(
+            "The rerank service's quota is exhausted, so this tool cannot "
+            "rank passages right now. Do not retry; tell the user the "
+            "documentation service is over its rerank quota."
+        )
+    if isinstance(error, (ResponseHandlingException, UnexpectedResponse)):
+        return ToolError(
+            "The documentation index is unavailable; its owner must check the "
+            "Qdrant cluster. Do not retry; tell the user."
+        )
+    if isinstance(error, openai.RateLimitError):
+        return ToolError(
+            "The language model hit a rate limit; retry once after about 30 seconds."
+        )
     return ToolError(
         "Documentation backend temporarily unavailable "
         f"({type(error).__name__}); retry in a few seconds."

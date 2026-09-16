@@ -123,9 +123,10 @@ Local, over stdio, with no HTTP server and no token:
 ```
 
 `ask_docs(question)` returns the answer with its sources.
-`search_docs(query, limit=8, product=None, response_format="concise")` reranks
-with Cohere (like ask_docs — it used to return raw hybrid order, whose tail
-past the first few results is mostly RRF ties) and returns ranked passages
+`search_docs(query, limit=8, product=None, response_format="concise")`
+retrieves a pool of `per_query_top_k` (20) candidates, has Cohere rerank it,
+and returns the best `limit` — so a small `limit` is the best few of twenty,
+not a reordering of the few RRF happened to pick. It returns ranked passages
 without generation, which is cheaper when the calling agent wants to reason
 over the documentation itself. `concise` trims each passage to
 300 characters so a first look costs little context; `detailed` returns full
@@ -147,7 +148,10 @@ demand from the Actions tab). It fetches every source page, fingerprints the
 markdown, and re-embeds only the pages whose content changed; a day without
 changes costs a few HTTP requests and no embeddings. The fingerprints live in
 [data/index-manifest.json](data/index-manifest.json), so `git log` on that
-file is the history of what changed when. After a change the job records the
+file is the history of what changed when. Every run also issues one cheap
+read against the index, even when nothing changed: Qdrant Cloud suspends a
+free cluster after a week without requests (and deletes it after four), and
+neither a no-op reindex nor `/health` would otherwise touch it. After a change the job records the
 build date in a one-point Qdrant collection (`agent_docs_meta`), which the
 service reports as `index_snapshot` without a redeploy, and runs a retrieval
 smoke check over the query-transform intents; a miss fails the run.

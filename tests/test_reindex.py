@@ -223,3 +223,19 @@ def test_fingerprint_changes_when_the_chunker_logic_version_changes(
     after = reindex.fingerprint("same content")
 
     assert before != after
+
+
+def test_touch_index_reads_the_hybrid_collection() -> None:
+    """Qdrant Cloud suspends a free cluster after a week without requests and
+    deletes it after four. A quiet week (no doc changes) made no Qdrant call
+    at all, so every run must issue at least one cheap read."""
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    client = Mock()
+    client.count.return_value = SimpleNamespace(count=1106)
+
+    points = reindex.touch_index(client, "agent_docs_hybrid_v1")
+
+    client.count.assert_called_once_with("agent_docs_hybrid_v1")
+    assert points == 1106

@@ -252,6 +252,17 @@ def _indexed_sources() -> set[str]:
         client.close()
 
 
+def touch_index(client: QdrantClient, collection: str) -> int:
+    """One cheap read per run, whether or not anything changed.
+
+    Qdrant Cloud suspends a free cluster after a week without requests and
+    deletes it after four. A run where no page changed used to make no Qdrant
+    call at all, and /health deliberately never does; a quiet week would
+    suspend the index while the manifest still said everything was indexed.
+    """
+    return int(client.count(collection).count)
+
+
 def write_meta(manifest: Manifest) -> None:
     """One point the service reads to report when the index was built."""
     client = get_qdrant_client()
@@ -312,6 +323,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest = load_manifest()
     documents = load_all_sources()
     plan = diff(manifest, documents)
+
+    client = get_qdrant_client()
+    try:
+        print(f"index points: {touch_index(client, settings.qdrant_hybrid_collection)}")
+    finally:
+        client.close()
 
     if args.prune:
         stale = orphans(_indexed_sources(), documents)

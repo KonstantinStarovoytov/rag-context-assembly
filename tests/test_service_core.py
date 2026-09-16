@@ -20,9 +20,13 @@ def test_search_forwards_vendor_scope(monkeypatch: pytest.MonkeyPatch) -> None:
     reranker = Mock(side_effect=AssertionError("Cohere must not be initialized"))
     monkeypatch.setattr(core, "CohereReranker", reranker)
 
+    monkeypatch.setattr(core.settings, "per_query_top_k", 20)
+
     core.search("rules", limit=3, vendor="openai")
 
-    assert seen == {"query": "rules", "k": 3, "vendor": "openai"}
+    # The retrieval pool is wider than the caller's limit so that Cohere picks
+    # the best 3 of 20, not merely reorders the 3 RRF chose (PR #12 regression).
+    assert seen == {"query": "rules", "k": 20, "vendor": "openai"}
     reranker.assert_not_called()
 
 
@@ -176,3 +180,54 @@ def test_search_returns_nothing_when_no_candidates(
 
     assert core.search("q") == []
     reranker.assert_not_called()
+
+
+def test_search_reranks_a_wide_pool_and_returns_only_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from langchain_core.documents import Document
+
+    from src.rag.retriever import SearchResult
+
+    monkeypatch.setattr(core.settings, "per_query_top_k", 20)
+    monkeypatch.setattr(
+        core,
+        "search_hybrid",
+        lambda *, query, k, vendor=None: [
+            SearchResult(
+                document=Document(page_content=f"c{i}", metadata={}), score=1.0
+            )
+            for i in range(k)
+        ],
+    )
+    seen: dict[str, Any] = {}
+
+    def rerank(query: str, results, top_n: int):
+        from src.rag.reranker import RerankResult
+
+        seen.update(pool=len(results), top_n=top_n)
+        return [
+            RerankResult(r.document, r.score, 0.9, i, i)
+            for i, r in enumerate(results[:top_n], start=1)
+        ]
+
+    monkeypatch.setattr(core, "CohereReranker", lambda: SimpleNamespace(rerank=rerank))
+
+    passages = core.search("q", limit=3)
+
+    assert seen == {"pool": 20, "top_n": 3}
+    assert len(passages) == 3
+
+
+def test_search_pool_never_shrinks_below_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A caller asking for more than per_query_top_k still gets that many."""
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr(core.settings, "per_query_top_k", 20)
+    monkeypatch.setattr(
+        core, "search_hybrid", lambda *, query, k, vendor=None: seen.update(k=k) or []
+    )
+    monkeypatch.setattr(core, "CohereReranker", Mock())
+
+    core.search("q", limit=30)
+
+    assert seen == {"k": 30}
