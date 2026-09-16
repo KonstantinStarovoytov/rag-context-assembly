@@ -24,7 +24,7 @@ from evals.evidence_coverage import (
 )
 from src.config import settings
 from src.rag.context_selector import select_generation_context
-from src.rag.generator import generate_answer
+from src.rag.generator import generate_from_selected
 from src.rag.iterative import retrieve_two_hop
 from src.rag.multi_query_retriever import search_queries_hybrid
 from src.rag.planner import EvidencePlanner
@@ -105,7 +105,10 @@ def _answer_output(
     stop_reason: str,
     follow_up_queries: list[str],
 ) -> dict[str, Any]:
-    generated = generate_answer(question, selected, top_k=GENERATION_TOP_K)
+    # Selection (with the relevance floor) already happened at the call
+    # site; re-selecting here would silently diverge from the contexts
+    # recorded below for the judge.
+    generated = generate_from_selected(question, selected)
     return {
         "answer": generated.answer,
         "sources": [
@@ -129,7 +132,9 @@ def _answer_output(
 def baseline_task(*, item, **_kwargs) -> dict[str, Any]:
     question = item.input["question"]
     ranked = _rerank(question, search_hybrid(question, k=RETRIEVAL_TOP_K))
-    selected = select_generation_context(ranked, GENERATION_TOP_K)
+    selected = select_generation_context(
+        ranked, GENERATION_TOP_K, min_rerank_score=settings.min_rerank_score
+    )
     return _answer_output(
         question,
         selected,

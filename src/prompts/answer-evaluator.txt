@@ -14,7 +14,10 @@ Score each value from 0.0 to 1.0 using only the supplied documents.
   supports the answer. Penalize irrelevant selected chunks, especially early ones.
 - citation_correctness: whether numbered citations refer to an existing context
   item and directly support the claims they cite. Penalize unsupported, incorrect,
-  missing, or invented citations.
+  missing, or invented citations. A source labelled "Product: X" does not support a
+  claim about a different product Y, even if the concepts are similar (e.g. citing a
+  Claude Code memory-file section to support a claim about GitHub Copilot instruction
+  files) — score this as an invented citation.
 
 Classify failure_mode as exactly one of:
 - none: the answer directly addresses the question.

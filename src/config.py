@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     tracing_enabled: bool = True
     # 5 -> 8 covered both aspects in half the multi-aspect set instead of a third.
     generation_top_k: int = Field(default=8, ge=1)
+    # Below this Cohere rerank score, a candidate is dropped rather than
+    # padding the context. Measured on rag/evidence-coverage-v1: the
+    # weakest genuinely relevant chunk scored 0.35 (128 chunks, only 4
+    # below 0.4, none below 0.3). None disables the floor.
+    min_rerank_score: float | None = Field(default=0.35, ge=0.0, le=1.0)
     retrieval_strategy: Literal["dense", "hybrid", "hybrid-english"] = "hybrid"
     translate_non_english: bool = True
     retrieval_top_k: int = Field(default=10, ge=1)

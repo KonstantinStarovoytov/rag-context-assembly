@@ -4,10 +4,22 @@ import pytest
 from langchain_core.documents import Document
 from pydantic import ValidationError
 
+from src.config import settings
 from src.rag.iterative import retrieve_two_hop
 from src.rag.multi_query_retriever import _document_key
 from src.rag.planner import Gap, RetrievalDecision, gap_query
 from src.rag.retriever import SearchResult
+
+
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _no_relevance_floor(monkeypatch):
+    """This module tests round orchestration (stop conditions, dedup), not the
+    min_rerank_score threshold (covered by test_context_selector.py); its fake
+    rerank passes SearchResult through unchanged, which has no rerank_score."""
+    monkeypatch.setattr(settings, "min_rerank_score", None)
 
 
 def result(text):

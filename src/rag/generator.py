@@ -59,12 +59,19 @@ def _format_context(
             "",
         )
 
+        vendor = metadata.get("vendor")
+        product = metadata.get("product")
+        # Without this, a specific-sounding claim can get attributed to the
+        # wrong product: the URL alone does not reliably read as "this section
+        # is not about the product the question asked about."
+        product_line = f"Product: {vendor}/{product}\n" if vendor and product else ""
+
         parts.append(
             f"""
 [{index}]
 Title: {title}
 Section: {heading}
-Source: {source}
+{product_line}Source: {source}
 
 {result.document.page_content}
 """.strip()
@@ -143,4 +150,7 @@ def generate_answer(
 ) -> GeneratedAnswer:
     if top_k is None:
         top_k = settings.generation_top_k
-    return generate_from_selected(query, select_generation_context(results, top_k))
+    selected = select_generation_context(
+        results, top_k, min_rerank_score=settings.min_rerank_score
+    )
+    return generate_from_selected(query, selected)
