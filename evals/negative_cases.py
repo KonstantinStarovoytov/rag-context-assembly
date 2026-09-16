@@ -63,9 +63,9 @@ CASES: list[dict[str, str]] = [
         "why_outside": "JetBrains client docs are not indexed.",
     },
     {
-        "id": "claude-desktop-connectors",
-        "question": "How do I add a custom connector in the Claude desktop app settings?",
-        "why_outside": "claude.ai / Claude Desktop help centre is not indexed.",
+        "id": "launchdarkly-feature-flags",
+        "question": "How do I set environment-specific feature flags in LaunchDarkly?",
+        "why_outside": "LaunchDarkly is unrelated to the indexed products.",
     },
     {
         "id": "kubernetes-deploy",
