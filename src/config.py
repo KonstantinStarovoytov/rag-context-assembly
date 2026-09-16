@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-small"
 
     cohere_api_key: SecretStr
+    # Used once the primary key hits its rate/quota limit (e.g. a trial
+    # key's monthly cap). Unset means no fallback: the original error
+    # propagates as before.
+    cohere_api_key_fallback: SecretStr | None = None
     cohere_rerank_model: str = "rerank-v4.0-fast"
 
     qdrant_url: str = "http://localhost:6333"

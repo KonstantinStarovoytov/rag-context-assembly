@@ -163,7 +163,9 @@ The MCP docs are published per spec version, so that source names a
 you change `sources.py`, run `uv run python -m src.reindex --prune` once to
 drop the pages no config selects any more.
 
-The workflow needs the repository secrets `OPENAI_API_KEY`, `COHERE_API_KEY`,
+The workflow needs the repository secrets `OPENAI_API_KEY`, `COHERE_API_KEY`
+(optionally `COHERE_API_KEY_FALLBACK`, used once the primary key hits its
+rate/quota limit),
 `QDRANT_URL` and `QDRANT_API_KEY`. The first run indexes everything (there is
 no manifest yet) and takes a few minutes.
 
@@ -183,7 +185,8 @@ uv run python -m src.index_hybrid --recreate
 
 2. In the Render dashboard: **New → Blueprint**, pick this repository. Render
    reads `render.yaml`, creates the `agent-docs-mcp` service and asks for the
-   secrets marked `sync: false`: `OPENAI_API_KEY`, `COHERE_API_KEY`,
+   secrets marked `sync: false`: `OPENAI_API_KEY`, `COHERE_API_KEY`
+   (optionally `COHERE_API_KEY_FALLBACK`),
    `QDRANT_URL`, `QDRANT_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
    `LANGFUSE_SECRET_KEY` (or set `TRACING_ENABLED=false`). `API_TOKEN` is
    generated; copy it from the service's Environment tab into your MCP client
