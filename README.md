@@ -123,9 +123,11 @@ Local, over stdio, with no HTTP server and no token:
 ```
 
 `ask_docs(question)` returns the answer with its sources.
-`search_docs(query, limit=8, product=None, response_format="concise")` returns
-ranked passages without generation, which is cheaper when the calling agent
-wants to reason over the documentation itself. `concise` trims each passage to
+`search_docs(query, limit=8, product=None, response_format="concise")` reranks
+with Cohere (like ask_docs — it used to return raw hybrid order, whose tail
+past the first few results is mostly RRF ties) and returns ranked passages
+without generation, which is cheaper when the calling agent wants to reason
+over the documentation itself. `concise` trims each passage to
 300 characters so a first look costs little context; `detailed` returns full
 chunks. `product` scopes the search to `claude-code`, `cursor`, `codex` or
 `mcp`. Both results carry `index_snapshot`, the date the re-index job last
