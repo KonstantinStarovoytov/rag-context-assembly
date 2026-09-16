@@ -164,3 +164,20 @@ def test_both_evaluators_share_one_judge_call(monkeypatch):
     )
 
     assert calls == 1
+
+
+def test_clean_abstention_with_empty_context_is_judged_not_zeroed(monkeypatch):
+    """min_rerank_score can legitimately filter every candidate out; the
+    canned "I couldn't find..." answer is then a correct abstention, not a
+    generation failure, and must still be scored (not force-zeroed)."""
+    _judge_returning(monkeypatch, _assessment(faithfulness=1.0, failure_mode="refusal"))
+
+    scores = answer_quality.answer_quality_metrics(
+        input={"question": "q"},
+        output={
+            "answer": "I couldn't find relevant documentation for this question.",
+            "contexts": [],
+        },
+    )
+
+    assert scores[0].value == 1.0  # judged, not the empty-input zero path
