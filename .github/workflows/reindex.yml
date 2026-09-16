@@ -19,6 +19,7 @@ jobs:
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+      COHERE_API_KEY_FALLBACK: ${{ secrets.COHERE_API_KEY_FALLBACK }}
       QDRANT_URL: ${{ secrets.QDRANT_URL }}
       QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
       TRACING_ENABLED: "false"

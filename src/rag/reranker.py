@@ -1,6 +1,8 @@
+import logging
 from dataclasses import dataclass
 
 import cohere
+from cohere.errors.too_many_requests_error import TooManyRequestsError
 from langchain_core.documents import Document
 
 from src.config import settings
@@ -56,8 +58,22 @@ def _rerank_trace_output(results: list[RerankResult]) -> list[dict[str, object]]
     ]
 
 
+logger = logging.getLogger(__name__)
+
 # Cohere's default is 300 s; reranking 20 chunks takes about a second.
 RERANK_TIMEOUT_SECONDS = 30.0
+
+# Sticky for the process once the primary key is seen exhausted (its trial
+# quota resets monthly, not per request), so later CohereReranker instances
+# - pipeline.py creates a fresh one per request - go straight to the
+# fallback instead of paying for a doomed primary call each time.
+_primary_exhausted = False
+
+
+def reset_fallback_state() -> None:
+    """Test-only: clear the sticky exhausted flag between cases."""
+    global _primary_exhausted
+    _primary_exhausted = False
 
 
 class CohereReranker:
@@ -67,6 +83,14 @@ class CohereReranker:
             timeout=RERANK_TIMEOUT_SECONDS,
             max_retries=1,
         )
+        self._fallback_client: cohere.ClientV2 | None = None
+        fallback_key = settings.cohere_api_key_fallback
+        if fallback_key:  # SecretStr('') is falsy: an empty CI secret must not count
+            self._fallback_client = cohere.ClientV2(
+                api_key=fallback_key.get_secret_value(),
+                timeout=RERANK_TIMEOUT_SECONDS,
+                max_retries=1,
+            )
 
         self.model = settings.cohere_rerank_model
 
@@ -88,12 +112,7 @@ class CohereReranker:
 
         documents = [self._document_text(result.document) for result in results]
 
-        response = self.client.rerank(
-            model=self.model,
-            query=query,
-            documents=documents,
-            top_n=min(top_n, len(documents)),
-        )
+        response = self._rerank_with_fallback(query, documents, top_n)
 
         reranked: list[RerankResult] = []
 
@@ -115,6 +134,36 @@ class CohereReranker:
             )
 
         return reranked
+
+    def _rerank_with_fallback(
+        self, query: str, documents: list[str], top_n: int
+    ) -> cohere.v2.types.v2rerank_response.V2RerankResponse:
+        global _primary_exhausted
+
+        def call(
+            client: cohere.ClientV2,
+        ) -> cohere.v2.types.v2rerank_response.V2RerankResponse:
+            return client.rerank(
+                model=self.model,
+                query=query,
+                documents=documents,
+                top_n=min(top_n, len(documents)),
+            )
+
+        if _primary_exhausted and self._fallback_client is not None:
+            return call(self._fallback_client)
+
+        try:
+            return call(self.client)
+        except TooManyRequestsError:
+            if self._fallback_client is None:
+                raise
+            logger.warning(
+                "Cohere primary key exhausted; switching to fallback key "
+                "for the rest of this process."
+            )
+            _primary_exhausted = True
+            return call(self._fallback_client)
 
     @staticmethod
     def _document_text(document: Document) -> str:
