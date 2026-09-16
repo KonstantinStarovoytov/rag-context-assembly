@@ -135,13 +135,14 @@ def search(
     if k > 50:
         raise QuestionRejected("limit must be at most 50")
 
-    candidates = search_hybrid(query=question, k=k, vendor=vendor)
+    # Retrieve a pool wider than the caller's limit, then let Cohere pick the
+    # best `k` of it. Reranking only `k` candidates would merely reorder what
+    # RRF already chose, and past the first few results RRF is mostly ties
+    # (reports/mcp-audit-2026-09-15.md #4a). Same single Cohere call either way.
+    pool = max(k, settings.per_query_top_k)
+    candidates = search_hybrid(query=question, k=pool, vendor=vendor)
     if not candidates:
         return []
-    # Without this, search_docs returned raw RRF order: a coarse score with
-    # many ties, especially past the first few results (see the MCP audit,
-    # reports/mcp-audit-2026-09-15.md finding #4a). ask_docs already reranks;
-    # search_docs promised the same ranked passages and did not deliver them.
     reranked = CohereReranker().rerank(query=question, results=candidates, top_n=k)
 
     passages = []
