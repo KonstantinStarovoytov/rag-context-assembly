@@ -122,15 +122,22 @@ def forget_assessments() -> None:
 
 
 def answer_quality_metrics(*, input, output, **_kwargs) -> list[Evaluation]:
-    """Return all quality dimensions from one judge invocation."""
+    """Return all quality dimensions from one judge invocation.
+
+    Only a missing answer short-circuits to zero: that is a real generation
+    failure. Empty contexts with a real answer is generate_from_selected's
+    canned "I couldn\'t find..." reply (e.g. min_rerank_score filtered every
+    candidate out) — a correct abstention the judge should still score, not a
+    failure to force-zero.
+    """
     answer = output.get("answer", "")
     contexts = output.get("contexts", [])
-    if not answer or not contexts:
+    if not answer:
         return [
             Evaluation(
                 name=name,
                 value=0.0,
-                comment="No generated answer or selected context was available.",
+                comment="No generated answer was available.",
             )
             for name in (
                 "answer_faithfulness",
