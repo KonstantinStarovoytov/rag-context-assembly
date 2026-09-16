@@ -1,8 +1,8 @@
 {
-  "indexed_at": "2026-09-15",
+  "indexed_at": "2026-09-16",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
-      "sha256": "fad6cc0b1ebf429fda686679b9f6472a58aeaae9efed344c1e43297e32c8d536",
+      "sha256": "859c0d629ceb625e29b264bf971a9cef0d7188a6d9358c292461a9fda56d33d9",
       "chunks": 18,
       "title": "Extend Claude Code"
     },
@@ -12,13 +12,13 @@
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "0dc5622c49bb817a53c78a974bb8e1664a30204300b0dbb3ba92a998007b4963",
-      "chunks": 152,
+      "sha256": "e19530ebc7709e76ace04022835e8dc55c46247152f1e4b3449e84c6ebdcb5a4",
+      "chunks": 154,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "ade771958f6052478788d24253254aa6c6e6c54a510da51681785f32c774740f",
-      "chunks": 72,
+      "sha256": "94ac427b5b58b688da9e67844e474caaec004be5dfa564847aa9fc4f8b628282",
+      "chunks": 73,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
@@ -27,17 +27,17 @@
       "title": "How Claude remembers your project"
     },
     "https://code.claude.com/docs/en/plugins.md": {
-      "sha256": "6f9f15a184ff8008208afd690e12488c45941d16844c2fc7b3f455ce0825daca",
+      "sha256": "52d5190cb5bde72672723d01ba357f1d462393dd1c3f52f938938f2eb54ec107",
       "chunks": 28,
       "title": "Create plugins"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "41d2fa0c7cd609fc74cf6a1c2ba78b8e9a229a95e2593a22a15acac53ef125d1",
+      "sha256": "65f3aa018bed65ecd4f39dc500a369cd7556ae497967f395f70595f5a2a62464",
       "chunks": 59,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "0a2d6c0e7e546f541f62dafc93152f6df98272aba998edff3772186d589cd1e2",
+      "sha256": "b6fa1f2099a3df0b5b92a49fe4e42351f4c3aa31227c8d2d8256b9187e650f07",
       "chunks": 59,
       "title": "Create custom subagents"
     },
