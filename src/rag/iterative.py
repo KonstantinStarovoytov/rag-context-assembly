@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from src.observability import traced
+from src.config import settings
 from src.rag.context_selector import select_generation_context
 from src.rag.multi_query_retriever import _document_key
 from src.rag.planner import RetrievalDecision, gap_query
@@ -36,7 +37,9 @@ def retrieve_two_hop(
     if not initial:
         return RetrievalOutcome([], 1, "no_initial_evidence", [], [])
     ranked = rerank(question, initial)
-    selected = select_generation_context(ranked, context_k)
+    selected = select_generation_context(
+        ranked, context_k, min_rerank_score=settings.min_rerank_score
+    )
     decision = assess(question, selected)
     decisions = [decision]
     if decision.sufficient:
@@ -64,7 +67,9 @@ def retrieve_two_hop(
         documents[_document_key(r.document)] = r
     # Re-rank the union against ORIGINAL intent; never compare scores across queries.
     union = [SearchResult(r.document, r.score) for r in documents.values()]
-    selected = select_generation_context(rerank(question, union), context_k)
+    selected = select_generation_context(
+        rerank(question, union), context_k, min_rerank_score=settings.min_rerank_score
+    )
     final = assess(question, selected)
     decisions.append(final)
     return RetrievalOutcome(

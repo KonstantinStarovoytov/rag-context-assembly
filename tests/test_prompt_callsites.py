@@ -154,3 +154,49 @@ def test_evidence_planner_uses_pinned_prompt_settings(monkeypatch):
     )
     assert get_prompt.call_args.kwargs["strict"] == planner.settings.prompt_strict
     assert structured.invoke.call_args.args[0] == prompt.messages
+
+
+def test_generate_answer_drops_weak_candidates_before_selecting(monkeypatch):
+    """The min_rerank_score floor applies to the default answer path, not just
+    the selector unit — callers of generate_answer get the fix automatically."""
+    monkeypatch.setattr(
+        generator,
+        "chat_model",
+        Mock(
+            return_value=Mock(
+                invoke=Mock(return_value=SimpleNamespace(content="answer"))
+            )
+        ),
+    )
+    monkeypatch.setattr(generator, "prompt_context", lambda _p: _null_context())
+    monkeypatch.setattr(
+        generator,
+        "get_chat_prompt",
+        Mock(
+            return_value=_managed("doc-bot/answer", [{"role": "user", "content": "q"}])
+        ),
+    )
+    monkeypatch.setattr(generator.settings, "min_rerank_score", 0.35)
+
+    def result(score: float, rank: int) -> RerankResult:
+        return RerankResult(
+            document=Document(
+                page_content=str(rank),
+                metadata={"title": "Hooks reference", "h2": str(rank)},
+            ),
+            retrieval_score=score,
+            rerank_score=score,
+            original_rank=rank,
+            rerank_rank=rank,
+        )
+
+    weak_candidates = [result(0.53, 1), result(0.38, 2), result(0.32, 3)]
+
+    generated = generator.generate_answer("q", weak_candidates, top_k=3)
+
+    assert [source.rerank_score for source in generated.sources] == [0.53, 0.38]
+
+
+@contextmanager
+def _null_context():
+    yield
