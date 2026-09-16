@@ -1,6 +1,8 @@
 """The shared handler forwards what both transports need, nothing more."""
 
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 
@@ -15,10 +17,13 @@ def test_search_forwards_vendor_scope(monkeypatch: pytest.MonkeyPatch) -> None:
         return []
 
     monkeypatch.setattr(core, "search_hybrid", fake_hybrid)
+    reranker = Mock(side_effect=AssertionError("Cohere must not be initialized"))
+    monkeypatch.setattr(core, "CohereReranker", reranker)
 
     core.search("rules", limit=3, vendor="openai")
 
     assert seen == {"query": "rules", "k": 3, "vendor": "openai"}
+    reranker.assert_not_called()
 
 
 def test_index_snapshot_comes_from_qdrant_meta(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,7 +86,93 @@ def test_search_passage_content_is_raw_not_the_embedding_prefix(
         ]
 
     monkeypatch.setattr(core, "search_hybrid", fake_search_hybrid)
+    _stub_passthrough_reranker(monkeypatch)
 
     passages = core.search("q")
 
     assert passages[0].content == "real text"
+
+
+def _stub_passthrough_reranker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A fake CohereReranker whose rerank() wraps each SearchResult as a
+    RerankResult with the same relative order and a fixed high score."""
+
+    def rerank(query: str, results, top_n: int):
+        from src.rag.reranker import RerankResult
+
+        return [
+            RerankResult(
+                document=result.document,
+                retrieval_score=result.score,
+                rerank_score=0.9,
+                original_rank=i,
+                rerank_rank=i,
+            )
+            for i, result in enumerate(results[:top_n], start=1)
+        ]
+
+    monkeypatch.setattr(core, "CohereReranker", lambda: SimpleNamespace(rerank=rerank))
+
+
+def test_search_reranks_candidates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """search_docs must be reranked like ask_docs, not left on raw RRF order
+    (the tail of a raw hybrid result is unordered ties - see the MCP audit)."""
+    from langchain_core.documents import Document
+
+    from src.rag.retriever import SearchResult
+
+    def fake_search_hybrid(*, query, k, vendor=None):
+        return [
+            SearchResult(
+                document=Document(page_content="weak", metadata={}), score=0.1
+            ),
+            SearchResult(
+                document=Document(page_content="strong", metadata={}), score=0.2
+            ),
+        ]
+
+    monkeypatch.setattr(core, "search_hybrid", fake_search_hybrid)
+    rerank_calls = []
+
+    def rerank(query: str, results, top_n: int):
+        from src.rag.reranker import RerankResult
+
+        rerank_calls.append((query, list(results), top_n))
+        # Reverse order and score, as a real Cohere rerank plausibly would.
+        return [
+            RerankResult(
+                document=results[1].document,
+                retrieval_score=results[1].score,
+                rerank_score=0.95,
+                original_rank=2,
+                rerank_rank=1,
+            ),
+            RerankResult(
+                document=results[0].document,
+                retrieval_score=results[0].score,
+                rerank_score=0.4,
+                original_rank=1,
+                rerank_rank=2,
+            ),
+        ]
+
+    monkeypatch.setattr(core, "CohereReranker", lambda: SimpleNamespace(rerank=rerank))
+
+    passages = core.search("q", limit=2)
+
+    assert len(rerank_calls) == 1
+    assert rerank_calls[0][0] == "q"
+    assert rerank_calls[0][2] == 2
+    assert [p.content for p in passages] == ["strong", "weak"]
+    assert [p.score for p in passages] == [0.95, 0.4]
+
+
+def test_search_returns_nothing_when_no_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(core, "search_hybrid", lambda *, query, k, vendor=None: [])
+    reranker = Mock(side_effect=AssertionError("Cohere must not be initialized"))
+    monkeypatch.setattr(core, "CohereReranker", reranker)
+
+    assert core.search("q") == []
+    reranker.assert_not_called()

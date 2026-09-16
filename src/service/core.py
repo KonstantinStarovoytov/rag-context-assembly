@@ -12,6 +12,7 @@ from typing import Any
 from src.config import settings
 from src.ingestion.ingest import get_qdrant_client
 from src.rag.pipeline import RetrievalStrategy, answer_question
+from src.rag.reranker import CohereReranker
 from src.rag.retriever import search_hybrid
 
 logger = logging.getLogger(__name__)
@@ -134,10 +135,17 @@ def search(
     if k > 50:
         raise QuestionRejected("limit must be at most 50")
 
+    candidates = search_hybrid(query=question, k=k, vendor=vendor)
+    if not candidates:
+        return []
+    # Without this, search_docs returned raw RRF order: a coarse score with
+    # many ties, especially past the first few results (see the MCP audit,
+    # reports/mcp-audit-2026-09-15.md finding #4a). ask_docs already reranks;
+    # search_docs promised the same ranked passages and did not deliver them.
+    reranked = CohereReranker().rerank(query=question, results=candidates, top_n=k)
+
     passages = []
-    for rank, result in enumerate(
-        search_hybrid(query=question, k=k, vendor=vendor), start=1
-    ):
+    for rank, result in enumerate(reranked, start=1):
         metadata = result.document.metadata
         heading = " > ".join(
             value
@@ -154,7 +162,7 @@ def search(
                 title=metadata.get("title", "Untitled"),
                 heading=heading,
                 url=metadata.get("source", ""),
-                score=result.score,
+                score=result.rerank_score,
                 content=metadata.get("raw_content", result.document.page_content),
             )
         )

@@ -119,12 +119,13 @@ class AskDocsResult(BaseModel):
 class PassageModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    rank: int = Field(description="1-based rank after hybrid retrieval.")
+    rank: int = Field(description="1-based rank after Cohere reranking.")
     title: str = Field(description="Document title.")
     heading: str = Field(description="Heading path inside the document.")
     url: str = Field(description="Source URL.")
     score: float = Field(
-        description="Hybrid retrieval score; only comparable within one result."
+        description="Cohere rerank relevance in [0, 1]. Low scores across all "
+        "passages mean the docs may not cover the query; consider rephrasing."
     )
     content: str = Field(description="Chunk text, trimmed when concise.")
     truncated: bool = Field(
