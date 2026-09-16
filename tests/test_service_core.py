@@ -57,3 +57,31 @@ def test_index_snapshot_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
     core.index_snapshot()
 
     assert calls == 1
+
+
+def test_search_passage_content_is_raw_not_the_embedding_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """MCP search_docs promises passages are "quoted documentation text";
+    page_content may carry the Vendor/Product/.../embedding prefix, which
+    must not leak into what the calling agent sees."""
+    from langchain_core.documents import Document
+
+    from src.rag.retriever import SearchResult
+
+    def fake_search_hybrid(*, query, k, vendor=None):
+        return [
+            SearchResult(
+                document=Document(
+                    page_content="Vendor: a\nProduct: b\nDocument: c\nSection: d\n\nreal text",
+                    metadata={"raw_content": "real text", "source": "https://x"},
+                ),
+                score=0.9,
+            )
+        ]
+
+    monkeypatch.setattr(core, "search_hybrid", fake_search_hybrid)
+
+    passages = core.search("q")
+
+    assert passages[0].content == "real text"

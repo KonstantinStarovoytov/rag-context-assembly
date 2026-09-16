@@ -49,3 +49,30 @@ def test_context_format_tolerates_missing_product() -> None:
     context = _format_context([result])
 
     assert "Product: " not in context
+
+
+def test_context_uses_raw_content_not_the_embedding_prefix() -> None:
+    """page_content may carry the Vendor/Product/Document/Section prefix used
+    for embedding/BM25; the generator must show raw text, or its own Product
+    line (already present) would be immediately followed by a duplicate."""
+    result = RerankResult(
+        document=Document(
+            page_content="Vendor: a\nProduct: b\nDocument: c\nSection: d\n\nreal text",
+            metadata={
+                "source": "https://x",
+                "vendor": "a",
+                "product": "b",
+                "raw_content": "real text",
+            },
+        ),
+        retrieval_score=1.0,
+        rerank_score=1.0,
+        original_rank=1,
+        rerank_rank=1,
+    )
+
+    context = _format_context([result])
+
+    assert context.count("Product: a/b") == 1
+    assert "Vendor: a\nProduct: b\nDocument: c" not in context
+    assert "real text" in context

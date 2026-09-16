@@ -201,7 +201,14 @@ def compare(path):
             measured[name] = {
                 **coverage({"results": _rows(selected)}, case),
                 "content_tokens": sum(
-                    len(encoding.encode(r.document.page_content)) for r in selected
+                    len(
+                        encoding.encode(
+                            r.document.metadata.get(
+                                "raw_content", r.document.page_content
+                            )
+                        )
+                    )
+                    for r in selected
                 ),
                 "ids": [document_key(r.document) for r in selected],
             }
@@ -253,7 +260,7 @@ def _context_rows(selected):
                     if value
                 ),
                 "source": metadata.get("source", ""),
-                "content": result.document.page_content,
+                "content": metadata.get("raw_content", result.document.page_content),
                 "rerank_score": result.rerank_score,
             }
         )

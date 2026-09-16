@@ -73,7 +73,7 @@ Title: {title}
 Section: {heading}
 {product_line}Source: {source}
 
-{result.document.page_content}
+{metadata.get("raw_content", result.document.page_content)}
 """.strip()
         )
 

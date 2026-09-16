@@ -68,7 +68,7 @@ def _context_rows(results: list[RerankResult]) -> list[dict[str, Any]]:
                     if value
                 ),
                 "source": metadata.get("source", ""),
-                "content": result.document.page_content,
+                "content": metadata.get("raw_content", result.document.page_content),
                 "rerank_score": result.rerank_score,
             }
         )
