@@ -28,7 +28,9 @@ def _capture_observations(monkeypatch):
     monkeypatch.setattr(
         observability,
         "get_langfuse",
-        lambda: SimpleNamespace(start_as_current_observation=start),
+        lambda: SimpleNamespace(
+            start_as_current_observation=start, get_current_trace_id=lambda: None
+        ),
     )
     return observations
 

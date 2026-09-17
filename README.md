@@ -255,6 +255,10 @@ rerank ranks them below the first aspect's chunks again.
 
 `TRACING_ENABLED=true` turns on Langfuse root and stage observations plus LangChain
 callbacks; the CLI flushes before exit and prints `TRACE: <url>` even on failure.
+The SDK is Langfuse v4 (OTel ingestion, observations-first): input/output live on
+the root `answer-question` observation, and Render sets
+`LANGFUSE_TRACING_ENVIRONMENT=production` so eval-script traces (`default`) stay
+separable in the UI. No deprecated trace/observation/score v1 endpoints are used.
 Three chat prompts (`answer`, `translate`, `evidence-planner`) are managed in Langfuse
 under the `production` label with a local fallback. For reproducible evaluation, pin
 versions via `ANSWER_PROMPT_VERSION`, `TRANSLATE_PROMPT_VERSION`,

@@ -38,6 +38,10 @@ services:
         value: agent-docs-mcp.onrender.com
       - key: TRACING_ENABLED
         value: "true"
+      # Langfuse v4 propagates the environment onto every observation, so
+      # production traces are separable from the eval scripts' "default" ones.
+      - key: LANGFUSE_TRACING_ENVIRONMENT
+        value: production
       - key: RETRIEVAL_STRATEGY
         value: hybrid
       - key: RETRIEVAL_TOP_K
