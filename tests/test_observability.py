@@ -48,7 +48,9 @@ def test_traced_supports_readable_input_and_metadata_factories(monkeypatch):
         observation.kwargs = kwargs
         yield span
 
-    client = SimpleNamespace(start_as_current_observation=observation)
+    client = SimpleNamespace(
+        start_as_current_observation=observation, get_current_trace_id=lambda: None
+    )
     monkeypatch.setattr(
         observability,
         "settings",
@@ -83,7 +85,9 @@ def test_traced_marks_failed_observations_as_errors(monkeypatch):
     def observation(**_kwargs):
         yield span
 
-    client = SimpleNamespace(start_as_current_observation=observation)
+    client = SimpleNamespace(
+        start_as_current_observation=observation, get_current_trace_id=lambda: None
+    )
     monkeypatch.setattr(
         observability,
         "settings",
@@ -125,3 +129,43 @@ def test_model_config_uses_validated_langfuse_public_key(monkeypatch):
         "callbacks": [handler.return_value],
         "run_name": "generate-answer",
     }
+
+
+def test_traced_propagates_trace_name_only_from_the_root_observation(monkeypatch):
+    """Langfuse v4 is observations-first: children only carry the trace name
+    when it is propagated from the root scope, so nested @traced stages must
+    not re-propagate their own names over it."""
+    span = Mock()
+    propagated: list[dict] = []
+
+    @contextmanager
+    def observation(**_kwargs):
+        client.current_trace_id = "trace"
+        yield span
+
+    @contextmanager
+    def propagate(**kwargs):
+        propagated.append(kwargs)
+        yield
+
+    client = SimpleNamespace(
+        start_as_current_observation=observation,
+        current_trace_id=None,
+        get_current_trace_id=lambda: client.current_trace_id,
+    )
+    monkeypatch.setattr(
+        observability, "settings", SimpleNamespace(tracing_enabled=True)
+    )
+    monkeypatch.setattr(observability, "get_langfuse", lambda: client)
+    monkeypatch.setattr(observability, "_propagate_attributes", propagate)
+
+    @observability.traced("hybrid-search", "retriever")
+    def inner():
+        return 1
+
+    @observability.traced("answer-question", "chain")
+    def outer():
+        return inner()
+
+    assert outer() == 1
+    assert propagated == [{"trace_name": "answer-question"}]

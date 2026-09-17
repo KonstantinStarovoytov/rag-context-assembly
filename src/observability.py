@@ -43,6 +43,12 @@ def get_langfuse() -> Any:
     )
 
 
+def _propagate_attributes(**attributes: Any) -> AbstractContextManager[Any]:
+    from langfuse import propagate_attributes
+
+    return propagate_attributes(**attributes)
+
+
 def serialize(value: object) -> object:
     if is_dataclass(value) and not isinstance(value, type):
         return serialize(asdict(value))
@@ -90,7 +96,14 @@ def traced(
             }
             if metadata_factory is not None:
                 observation["metadata"] = serialize(metadata_factory(*args, **kwargs))
-            with get_langfuse().start_as_current_observation(**observation) as span:
+            client = get_langfuse()
+            # v4 is observations-first: the trace name is only searchable on
+            # child observations when propagated from the root scope.
+            is_root = client.get_current_trace_id() is None
+            with (
+                client.start_as_current_observation(**observation) as span,
+                _propagate_attributes(trace_name=name) if is_root else nullcontext(),
+            ):
                 last_trace_id.set(span.trace_id)
                 try:
                     result = fn(*args, **kwargs)
