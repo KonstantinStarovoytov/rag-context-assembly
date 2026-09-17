@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-09-16",
+  "indexed_at": "2026-09-17",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "817a4d5abd4b973ada6c445865b00f78b1b95d137c78dde87777c597dc079b27",
@@ -17,7 +17,7 @@
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "7947ebbb29db22c80399c34178abdaf0f9c137131c042a612cb38f040a51d97d",
+      "sha256": "b9d7111f7e51904610f57ae85d777008e2eef70bee4a68d419026ba082448fdc",
       "chunks": 72,
       "title": "Connect Claude Code to tools via MCP"
     },
@@ -32,8 +32,8 @@
       "title": "Create plugins"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "47b1aef64c0cc1acd74bb8c009982c18ed7df8b06d17d15d792e9427d7f80c3c",
-      "chunks": 58,
+      "sha256": "28a0a3848ba87aad1ae5db4355f23c4b0213cb27cc62e6027abbd247f2806c23",
+      "chunks": 59,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
