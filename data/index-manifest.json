@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-09-17",
+  "indexed_at": "2026-09-18",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "817a4d5abd4b973ada6c445865b00f78b1b95d137c78dde87777c597dc079b27",
@@ -12,17 +12,17 @@
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "4581191ccae6ed85ada227582894ed5fbfdc752d432a4365aa2c66195af08cf4",
-      "chunks": 150,
+      "sha256": "2a93969d7f3f0561318b6e56b721b726f2dad0445c039f506fec780db49ae96a",
+      "chunks": 151,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "b9d7111f7e51904610f57ae85d777008e2eef70bee4a68d419026ba082448fdc",
-      "chunks": 72,
+      "sha256": "811e68f4a39090bc132177fdf387537fb71ce4de26ff03210b961f0c33ebbeb6",
+      "chunks": 73,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "f151a947cbfd0efa2638c78511a59d5d86f5a25d11ea4db14c6397348bca4bcf",
+      "sha256": "bfb53677a2e5f8cbef35b441563fac293b7e745f479c20227064519a7a4e1b2b",
       "chunks": 27,
       "title": "How Claude remembers your project"
     },
@@ -32,7 +32,7 @@
       "title": "Create plugins"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "28a0a3848ba87aad1ae5db4355f23c4b0213cb27cc62e6027abbd247f2806c23",
+      "sha256": "51bf369bfb434c5a86ec11d3f52cb1fe153de94f80394c89bdf9aef236c39c8e",
       "chunks": 59,
       "title": "Extend Claude with skills"
     },
@@ -57,12 +57,12 @@
       "title": "Hooks"
     },
     "https://cursor.com/docs/mcp.md": {
-      "sha256": "d592cfe9f836f81d48a2154f86f799d19eabdd4eab83f7945b6e273857cc2752",
+      "sha256": "49586a34897774465ba2ce764cdf3b18535d45d5d8c1569fc07f27be7137f9a9",
       "chunks": 35,
       "title": "Mcp"
     },
     "https://cursor.com/docs/plugins.md": {
-      "sha256": "a11065f8f18e398242847648e4846a1457a1c7e84273f80b72fd23581c1911e2",
+      "sha256": "b15603a21253674aab1140cb317bdf47da6880ffb9cec52c5aa2add201cd055f",
       "chunks": 35,
       "title": "Plugins"
     },
@@ -92,7 +92,7 @@
       "title": "Rules"
     },
     "https://learn.chatgpt.com/docs/agent-configuration/subagents.md": {
-      "sha256": "97ffcdd0febfa933c0d386df474e050dc99a96d5161423ee3953c8fdbdaa5785",
+      "sha256": "03fcf8dd6cf3d96c9e18fc4457e74a90ad287c9c22c55b1ddee5b966af4fa225",
       "chunks": 16,
       "title": "Subagents"
     },
