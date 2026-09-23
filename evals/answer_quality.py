@@ -89,7 +89,8 @@ def assess_answer_quality(
     model = ChatOpenAI(
         api_key=settings.openai_api_key.get_secret_value(),
         model=judge_model(),
-        temperature=0,
+        # The judge's model family differs from the generator's; GPT-6 judges
+        # reject any temperature, so the generator's setting must not leak here.
     )
     with prompt_context(prompt):
         assessment = model.with_structured_output(AnswerQualityAssessment).invoke(

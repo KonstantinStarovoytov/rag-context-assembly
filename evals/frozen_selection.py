@@ -163,7 +163,7 @@ def compare(path):
             model = ChatOpenAI(
                 api_key=settings.openai_api_key.get_secret_value(),
                 model=settings.openai_chat_model,
-                temperature=0,
+                temperature=settings.openai_temperature,
             )
             started = time.perf_counter()
             response = model.with_structured_output(

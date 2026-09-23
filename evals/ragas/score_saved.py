@@ -55,7 +55,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-name", required=True)
     parser.add_argument("--dataset", default="rag/evidence-coverage-v1")
-    parser.add_argument("--judge-model", default="gpt-5.6-luna")
+    parser.add_argument("--judge-model", default="gpt-6-luna")
     args = parser.parse_args()
     load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
     client = Langfuse()
