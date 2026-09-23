@@ -17,7 +17,7 @@ def chat_model() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=settings.openai_api_key,
         model=settings.openai_chat_model,
-        temperature=0,
+        temperature=settings.openai_temperature,
         timeout=CHAT_TIMEOUT_SECONDS,
         max_retries=1,
     )

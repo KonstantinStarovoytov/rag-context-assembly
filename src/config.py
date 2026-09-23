@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,10 +33,20 @@ class Settings(BaseSettings):
     translate_prompt_version: int | None = Field(default=None, ge=1)
     evidence_planner_prompt_version: int | None = Field(default=None, ge=1)
     prompt_strict: bool = False
-    openai_chat_model: str = "gpt-5.6-luna"
+    openai_chat_model: str = "gpt-6-luna"
     # LLM-as-judge should not be the model it grades. Unset means the judge
     # runs on the generator model and every eval run records that it did.
     openai_judge_model: str | None = None
+    # GPT-6 models accept only the default temperature and answer 400 to any
+    # other value, so unset means "do not send it". Set 0 for older models.
+    openai_temperature: float | None = None
+
+    @field_validator("openai_temperature", mode="before")
+    @classmethod
+    def _blank_temperature_is_unset(cls, value: object) -> object:
+        # A dashboard variable left empty arrives as "", which must not crash startup.
+        return None if value == "" else value
+
     tracing_enabled: bool = True
     # 5 -> 8 covered both aspects in half the multi-aspect set instead of a third.
     generation_top_k: int = Field(default=8, ge=1)
