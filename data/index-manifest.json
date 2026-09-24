@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-09-23",
+  "indexed_at": "2026-09-24",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "5981ddf0a9fa208bdae9dcad822c3a67f82d91513a0c0ce3997bd284964bb456",
@@ -22,7 +22,7 @@
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "e9d3c88f331b1f86235db2057ca090f3b8d738f5ff0101a4dfc0de62ccedcb2b",
+      "sha256": "947330fbd3b3c0d410e873f0a4a88a7a07a0ce81650e351d78d73765f254b1fb",
       "chunks": 36,
       "title": "How Claude remembers your project"
     },
@@ -137,8 +137,8 @@
       "title": "Build an MCP server"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro.md": {
-      "sha256": "6fa12dc781920404a78ffcd2e1e6d056b363aceb85c6d7c3ee3d68ef0630b72f",
-      "chunks": 6,
+      "sha256": "17095ced16d8d1b59a095afd23629db220709f8b025ee7b40d1e6412b6d017d0",
+      "chunks": 7,
       "title": "What is the Model Context Protocol (MCP)?"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture.md": {
