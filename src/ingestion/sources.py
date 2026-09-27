@@ -22,7 +22,8 @@ ANTHROPIC = SourceConfig(
         "/docs/en/features-overview.md",
         "/docs/en/sub-agents.md",
         "/docs/en/skills.md",
-        "/docs/en/plugins.md",
+        # Split into a plugins/ section in Sept 2026; create.md is the old page.
+        "/docs/en/plugins/create.md",
         "/docs/en/mcp.md",
         "/docs/en/memory.md",
         "/docs/en/hooks.md",
