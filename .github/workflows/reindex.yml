@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
+    inputs:
+      prune:
+        description: "Drop indexed pages no source config selects any more (after editing sources.py)"
+        type: boolean
+        default: false
 permissions:
   contents: write
   issues: write
@@ -31,7 +36,7 @@ jobs:
         id: reindex
         run: |
           set -o pipefail
-          uv run python -m src.reindex 2>&1 | tee reindex.log
+          uv run python -m src.reindex ${{ inputs.prune && '--prune' || '' }} 2>&1 | tee reindex.log
       - name: Commit manifest
         # Even after a failed smoke check: the index was already rewritten,
         # and the manifest must say so or the next run re-embeds it all again.
