@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-09-27",
+  "indexed_at": "2026-09-28",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "0d89dd0f5fbbce8cccbc2d1617d08725c83838a09af47f1f8950c8cf83393903",
@@ -7,12 +7,12 @@
       "title": "Extend Claude Code"
     },
     "https://code.claude.com/docs/en/hooks-guide.md": {
-      "sha256": "c317208d819c25f1ed505937a5a019cdaa4405874866617a93f1be85c8f56e86",
+      "sha256": "366c0af7e3f58a1a5906e4085173f8a3cd41e6042c19f35c1adb2a465e06d8a7",
       "chunks": 42,
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "2695e5782d3a1c193f636ed8b18fe7b0e0225ded64c2b1e8009da77cf442b65e",
+      "sha256": "406abda17353b2c1db716c7b3d20b590c953bd984dffafa42e9c4e8b5c1cb53e",
       "chunks": 152,
       "title": "Hooks reference"
     },
@@ -22,7 +22,7 @@
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "15b2a232f3772fb038145eb6a78b918c4ea47c972b5ed02cbc1f884c11190cb7",
+      "sha256": "290e06405e9c90208e913605a2c0d2c2ad626ef73fbd0b98d1b113a7f704a106",
       "chunks": 36,
       "title": "How Claude remembers your project"
     },
@@ -37,7 +37,7 @@
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "6e4d689eece507e46facb782d6c5c74132177a9f26530729cc4661e7b12a0923",
+      "sha256": "057e73a19114f5d3cab549fd474bdafdc0b43b228bde6a427a007b6d44fb3cbc",
       "chunks": 58,
       "title": "Create custom subagents"
     },
