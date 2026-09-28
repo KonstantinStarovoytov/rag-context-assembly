@@ -1,10 +1,8 @@
 """Change detection and the incremental apply step, with fakes for the network."""
 
-from datetime import date
 from typing import Any
 
 import pytest
-from langchain_core.documents import Document
 
 from src import reindex
 from src.models import SourceDocument
@@ -46,55 +44,6 @@ def test_diff_classifies_added_changed_unchanged_and_missing() -> None:
     assert [d.url for d in result.changed] == ["u/changed"]
     assert result.unchanged == ["u/same"]
     assert result.missing == ["u/gone"]
-
-
-def test_apply_replaces_only_changed_documents() -> None:
-    deleted: list[str] = []
-    added: list[Document] = []
-
-    def delete_source(url: str) -> None:
-        deleted.append(url)
-
-    def add_chunks(chunks: list[Document]) -> None:
-        added.extend(chunks)
-
-    manifest = reindex.Manifest(indexed_at="2026-09-01", documents={})
-    documents = [_doc("u/a", "# A\n\nalpha"), _doc("u/b", "# B\n\nbeta")]
-    plan = reindex.diff(manifest, documents)
-
-    updated = reindex.apply(
-        plan,
-        manifest,
-        delete_source=delete_source,
-        add_chunks=add_chunks,
-        today=date(2026, 9, 15),
-    )
-
-    assert sorted(deleted) == ["u/a", "u/b"]
-    assert {c.metadata["source"] for c in added} == {"u/a", "u/b"}
-    assert updated.indexed_at == "2026-09-15"
-    assert set(updated.documents) == {"u/a", "u/b"}
-    assert updated.documents["u/a"].chunks == 1
-
-
-def test_apply_keeps_missing_documents_in_manifest() -> None:
-    """A page that vanished from the vendor index is a human decision."""
-    manifest = reindex.Manifest(
-        indexed_at="2026-09-01",
-        documents={"u/gone": reindex.ManifestEntry(sha256="x", chunks=2, title="T")},
-    )
-    plan = reindex.diff(manifest, [])
-
-    updated = reindex.apply(
-        plan,
-        manifest,
-        delete_source=lambda _u: None,
-        add_chunks=lambda _c: None,
-        today=date(2026, 9, 15),
-    )
-
-    assert "u/gone" in updated.documents
-    assert updated.indexed_at == "2026-09-01"  # nothing was re-indexed
 
 
 def test_smoke_passes_when_any_relevant_target_is_hit() -> None:
@@ -225,6 +174,42 @@ def test_fingerprint_changes_when_the_chunker_logic_version_changes(
     assert before != after
 
 
+def test_manifest_path_follows_the_collection() -> None:
+    assert str(reindex.manifest_path("agent_docs_hybrid_v2")) == (
+        "data/manifests/agent_docs_hybrid_v2.json"
+    )
+
+
+def test_old_manifest_entries_load_as_indexed(tmp_path: Any) -> None:
+    path = tmp_path / "m.json"
+    path.write_text(
+        '{"indexed_at": "2026-09-01", "documents": '
+        '{"u": {"sha256": "s", "chunks": 1, "title": "T"}}}'
+    )
+
+    entry = reindex.load_manifest(path).documents["u"]
+
+    assert entry.status == "indexed" and entry.reason == "" and entry.summary == ""
+
+
+def test_quarantined_page_is_regated_only_when_content_changes() -> None:
+    q = reindex.ManifestEntry(
+        sha256=reindex.fingerprint("same"),
+        chunks=0,
+        title="T",
+        status="quarantined",
+        reason="size",
+        summary="s",
+    )
+    manifest = reindex.Manifest(indexed_at=None, documents={"u/q": q})
+
+    same = reindex.diff(manifest, [_doc("u/q", "same")])
+    edited = reindex.diff(manifest, [_doc("u/q", "edited")])
+
+    assert same.unchanged == ["u/q"] and not same.added
+    assert [d.url for d in edited.added] == ["u/q"]
+
+
 def test_touch_index_reads_the_hybrid_collection() -> None:
     """Qdrant Cloud suspends a free cluster after a week without requests and
     deletes it after four. A quiet week (no doc changes) made no Qdrant call
@@ -239,3 +224,68 @@ def test_touch_index_reads_the_hybrid_collection() -> None:
 
     client.count.assert_called_once_with("agent_docs_hybrid_v1")
     assert points == 1106
+
+
+def _load(listed: dict[str, int], failures: dict[str, str] | None = None) -> Any:
+    from src.ingestion.loader import LoadResult
+
+    failures = failures or {}
+    return LoadResult(
+        documents=[],
+        failures=failures,
+        listed=listed,
+        failed_products={u: "p" for u in failures},
+    )
+
+
+def _manifest(n: int, product: str = "p") -> tuple[reindex.Manifest, dict[str, str]]:
+    docs = {
+        f"u{i}": reindex.ManifestEntry(sha256="s", chunks=1, title="T")
+        for i in range(n)
+    }
+    return reindex.Manifest(indexed_at=None, documents=docs), {u: product for u in docs}
+
+
+def test_small_removals_are_applied() -> None:
+    manifest, product_of = _manifest(20)
+
+    decision = reindex.decide_removals(
+        manifest, ["u0", "u1"], _load({"p": 18}), product_of
+    )
+
+    assert decision.delete == ["u0", "u1"] and decision.blocked == {}
+
+
+def test_removing_more_than_ten_percent_is_blocked() -> None:
+    manifest, product_of = _manifest(20)
+
+    decision = reindex.decide_removals(
+        manifest, ["u0", "u1", "u2"], _load({"p": 17}), product_of
+    )
+
+    assert decision.delete == []
+    assert "3 of 20" in decision.blocked["p"]
+
+
+def test_shrunken_index_blocks_removals() -> None:
+    manifest, product_of = _manifest(20)
+
+    decision = reindex.decide_removals(manifest, ["u0"], _load({"p": 9}), product_of)
+
+    assert decision.delete == [] and "llms.txt" in decision.blocked["p"]
+
+
+def test_failed_fetches_are_not_missing() -> None:
+    manifest, product_of = _manifest(20)
+
+    decision = reindex.decide_removals(
+        manifest, ["u0"], _load({"p": 20}, {"u0": "HTTP 500"}), product_of
+    )
+
+    assert decision.delete == []
+
+
+def test_vendor_with_many_fetch_failures_fails_the_run() -> None:
+    load = _load({"p": 10}, {f"u{i}": "HTTP 500" for i in range(2)})
+
+    assert "2 of 10" in reindex.failing_vendors(load)["p"]

@@ -1,8 +1,19 @@
-# Daily incremental re-index. Fetches every source page, re-embeds only the
-# ones whose content changed, records the build date in Qdrant for the
-# service, and commits the manifest so git history shows what changed when.
-# Pages that vanish from a vendor index are reported, not deleted: the run
-# fails and an issue is opened so a human decides.
+# Daily incremental re-index. Every markdown page in each vendor's llms.txt,
+# minus excludes, is indexed: new pages must pass a quality gate, and
+# suspicious ones are quarantined in the "Pages waiting for review" issue for
+# a human to decide. Pages that vanish from a vendor index are deleted,
+# unless the removal guard judges the drop too large to be safe, in which
+# case the run fails and an issue is opened so a human decides. Every run
+# writes a readable change report to the job summary and to
+# reports/docs-changes/, and commits the manifest so git history shows what
+# changed when.
+#
+# The scheduled cron must not touch production (agent_docs_hybrid_v1) with
+# the new, ~560-page reindex until the owner opts in: set the repository
+# variable FULL_DOCS_LIVE to "true" once production has moved to the full
+# index. Until then, scheduled runs only keep the free Qdrant cluster awake;
+# a manual workflow_dispatch run (e.g. against agent_docs_hybrid_v2) always
+# reindexes.
 
 name: Reindex
 on:
@@ -12,6 +23,14 @@ on:
     inputs:
       prune:
         description: "Drop indexed pages no source config selects any more (after editing sources.py)"
+        type: boolean
+        default: false
+      collection:
+        description: "Qdrant collection to build (empty = production default)"
+        type: string
+        default: ""
+      gate_report_only:
+        description: "Index flagged pages but list them (initial build)"
         type: boolean
         default: false
 permissions:
@@ -27,29 +46,55 @@ jobs:
       COHERE_API_KEY_FALLBACK: ${{ secrets.COHERE_API_KEY_FALLBACK }}
       QDRANT_URL: ${{ secrets.QDRANT_URL }}
       QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      QDRANT_HYBRID_COLLECTION: ${{ inputs.collection || vars.QDRANT_HYBRID_COLLECTION || 'agent_docs_hybrid_v1' }}
       TRACING_ENABLED: "false"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
       - run: uv sync --locked
+      - name: Keep Qdrant awake
+        if: github.event_name == 'schedule' && vars.FULL_DOCS_LIVE != 'true'
+        run: |
+          uv run python -c "from src.config import settings; from src.ingestion.ingest import get_qdrant_client; c = get_qdrant_client(); print('index points:', c.count(settings.qdrant_hybrid_collection).count); c.close()"
       - name: Reindex changed pages
         id: reindex
+        if: github.event_name != 'schedule' || vars.FULL_DOCS_LIVE == 'true'
         run: |
           set -o pipefail
-          uv run python -m src.reindex ${{ inputs.prune && '--prune' || '' }} 2>&1 | tee reindex.log
+          uv run python -u -m src.reindex --out out \
+            ${{ inputs.prune && '--prune' || '' }} \
+            ${{ inputs.gate_report_only && '--gate-report-only' || '' }} 2>&1 | tee reindex.log
+      - name: Job summary
+        if: always()
+        run: '[ -f out/report.md ] && cat out/report.md >> "$GITHUB_STEP_SUMMARY" || true'
       - name: Commit manifest
         # Even after a failed smoke check: the index was already rewritten,
         # and the manifest must say so or the next run re-embeds it all again.
         if: always()
         run: |
-          if git diff --quiet -- data/index-manifest.json && [ -z "$(git ls-files --others --exclude-standard data)" ]; then
-            echo "manifest unchanged"; exit 0
+          set -e
+          mkdir -p data/manifests reports/docs-changes
+          if git diff --quiet -- data/manifests reports/docs-changes && [ -z "$(git ls-files --others --exclude-standard data/manifests reports/docs-changes)" ]; then
+            echo "nothing to commit"; exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/index-manifest.json
+          git add data/manifests reports/docs-changes
           git commit -m "chore(index): reindex on $(date -u +%F) [skip ci]"
           git push
+      - name: Quarantine issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f out/quarantine.md ] || exit 0
+          existing=$(gh issue list --label docs-review --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file out/quarantine.md
+          else
+            gh label create docs-review --description "New doc pages waiting for a decision" --force
+            gh issue create --title "Pages waiting for review" --label docs-review --body-file out/quarantine.md
+          fi
       - name: Open an issue on failure
         if: failure()
         env:
@@ -61,7 +106,7 @@ jobs:
           \`\`\`
           $(tail -n 40 reindex.log)
           \`\`\`"
-          existing=$(gh issue list --label reindex --state open --json number --jq '.[0].number')
+          existing=$(gh issue list --label reindex --state open --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
             gh issue comment "$existing" --body "$body"
           else
