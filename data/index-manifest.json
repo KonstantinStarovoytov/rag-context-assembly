@@ -1,44 +1,44 @@
 {
-  "indexed_at": "2026-09-28",
+  "indexed_at": "2026-09-29",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
-      "sha256": "0d89dd0f5fbbce8cccbc2d1617d08725c83838a09af47f1f8950c8cf83393903",
-      "chunks": 17,
+      "sha256": "4563f9c3d1eddcd1032753cbe04f1e8914c34352c7b8c6aeeeab19b8009f04a3",
+      "chunks": 16,
       "title": "Extend Claude Code"
     },
     "https://code.claude.com/docs/en/hooks-guide.md": {
-      "sha256": "366c0af7e3f58a1a5906e4085173f8a3cd41e6042c19f35c1adb2a465e06d8a7",
-      "chunks": 42,
+      "sha256": "95a9d54c189c60b31093741d9ac42f011252b872e8d02dc7ccfc1654104445f1",
+      "chunks": 34,
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "406abda17353b2c1db716c7b3d20b590c953bd984dffafa42e9c4e8b5c1cb53e",
-      "chunks": 152,
+      "sha256": "bcad36603b4354b2201afe6ded80bdc06577e7a859a6c743978f7ba2f1a158a8",
+      "chunks": 118,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "77a1dc4e7991dd5524024eb7123ac3547b84097c193bb5c7bac1ea207c494fdc",
-      "chunks": 74,
+      "sha256": "02750cc916471084f079ad05777eb4398aaffb05e113377a7f503bb2ce81358f",
+      "chunks": 71,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "290e06405e9c90208e913605a2c0d2c2ad626ef73fbd0b98d1b113a7f704a106",
-      "chunks": 36,
+      "sha256": "006d0ee2dd9e25916ac808876c7ab2b719a346c291e953813961434b21889e2f",
+      "chunks": 35,
       "title": "How Claude remembers your project"
     },
     "https://code.claude.com/docs/en/plugins/create.md": {
-      "sha256": "5ac1d244d854f87ea081bcd0692c1a30906db706fb52168d6a98d1d239318029",
+      "sha256": "ccaf3827415e0e965128cc89f9e12470a107cda95659c6512f111ab43e4b292d",
       "chunks": 16,
       "title": "Create a Claude Code plugin"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "b11f7be7a5b44b2f34213ea781cfbb25240545951738f288a2f98b1155514fd7",
-      "chunks": 61,
+      "sha256": "c690a2a0801772dd675317e93c64d37040167a3272179f783e457948daba26cb",
+      "chunks": 51,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "057e73a19114f5d3cab549fd474bdafdc0b43b228bde6a427a007b6d44fb3cbc",
-      "chunks": 58,
+      "sha256": "8e648711b4a386e6ae4632798e4a5b8b2da9aa9826819bab03720e9c9bf0aa54",
+      "chunks": 54,
       "title": "Create custom subagents"
     },
     "https://cursor.com/docs/agent/prompting.md": {
@@ -77,8 +77,8 @@
       "title": "Skills"
     },
     "https://cursor.com/docs/subagents.md": {
-      "sha256": "505d4d26469d13e10a540f61daf40086991e053ed08a4dc265d1adb66b840b60",
-      "chunks": 43,
+      "sha256": "c22395c32b871a5f308056568273643a06b743909b192e52845466e215336f4f",
+      "chunks": 45,
       "title": "Subagents"
     },
     "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md": {
@@ -132,7 +132,7 @@
       "title": "Build an MCP client"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/develop/build-server.md": {
-      "sha256": "e5997da96f66d524b3576734f09138b8ab2281d7eb089a86870d77e39459aa92",
+      "sha256": "2b60e015cb7e17d1adb8328b4e7235bc2931cfeb1dd602dfe48c7349ff5ede2b",
       "chunks": 95,
       "title": "Build an MCP server"
     },
@@ -147,12 +147,12 @@
       "title": "Architecture overview"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/learn/client-concepts.md": {
-      "sha256": "87c512036caa5c73b7552ea24c2e8b1de21a5f82a6ec683825c3eb9a116bcb7f",
+      "sha256": "cfc04aea808074d29c209d301c4e40d0451141222ebf5240b6b8b746ac37f3e4",
       "chunks": 9,
       "title": "Understanding MCP clients"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/learn/server-concepts.md": {
-      "sha256": "41c6b124d12d62dfd25e8522432d3dd72700338d5a39f515529915c4a8c2aa37",
+      "sha256": "93747409e23cd404e7648ec0972b91d1c2b4cea978dab7fec3b97e46e9c6a632",
       "chunks": 9,
       "title": "Understanding MCP servers"
     },
@@ -162,7 +162,7 @@
       "title": "Versioning"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/sdk.md": {
-      "sha256": "638843cd14cf4b775a9c35a8adfc044405c98a2fb1e70e9cf1f202342dabe0ac",
+      "sha256": "d147736270c9fb18ac5509d80b105878fdb7a4d401f8453c3ba562e3c97bb2a7",
       "chunks": 4,
       "title": "SDKs"
     },
