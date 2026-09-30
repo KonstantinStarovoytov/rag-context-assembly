@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-09-29",
+  "indexed_at": "2026-09-30",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "4563f9c3d1eddcd1032753cbe04f1e8914c34352c7b8c6aeeeab19b8009f04a3",
@@ -7,23 +7,23 @@
       "title": "Extend Claude Code"
     },
     "https://code.claude.com/docs/en/hooks-guide.md": {
-      "sha256": "95a9d54c189c60b31093741d9ac42f011252b872e8d02dc7ccfc1654104445f1",
+      "sha256": "22b6cd1a85ae5b5798f38f24ad9e56555d9bc77a9170a805e63b3bdf49cca07c",
       "chunks": 34,
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "bcad36603b4354b2201afe6ded80bdc06577e7a859a6c743978f7ba2f1a158a8",
-      "chunks": 118,
+      "sha256": "852a79720e4042803cb084f9002d8b5b02a1c89e24997b6de40b72158effecf4",
+      "chunks": 119,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "02750cc916471084f079ad05777eb4398aaffb05e113377a7f503bb2ce81358f",
+      "sha256": "4a803d0259a89af5829cd36fafe511f78acb9a92c065fdf850605c1f0eaa6f80",
       "chunks": 71,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "006d0ee2dd9e25916ac808876c7ab2b719a346c291e953813961434b21889e2f",
-      "chunks": 35,
+      "sha256": "d7a0ff0145cd6623fbbe65bd20237480d2959cd4fae48dd02e34729d855154e9",
+      "chunks": 36,
       "title": "How Claude remembers your project"
     },
     "https://code.claude.com/docs/en/plugins/create.md": {
@@ -32,12 +32,12 @@
       "title": "Create a Claude Code plugin"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "c690a2a0801772dd675317e93c64d37040167a3272179f783e457948daba26cb",
-      "chunks": 51,
+      "sha256": "b138995b70569a73f7ef2dc3922abae3834e1294b8df489fddf3e70d1360133e",
+      "chunks": 52,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "8e648711b4a386e6ae4632798e4a5b8b2da9aa9826819bab03720e9c9bf0aa54",
+      "sha256": "b7c670a5f2a8f7eddac5c80f90faad667a1d4ea8d252fc2ace9f83950f342f6f",
       "chunks": 54,
       "title": "Create custom subagents"
     },
@@ -87,12 +87,12 @@
       "title": "Custom instructions with AGENTS.md"
     },
     "https://learn.chatgpt.com/docs/agent-configuration/rules.md": {
-      "sha256": "7227ef92c252848d1a544f5885cc8edfdcb39b33f0d56efd61d913953ee804b1",
+      "sha256": "9e7574bc554328fce8d44ed2a253b04b961f7600ca07ed7debc73e458b6c2fae",
       "chunks": 8,
       "title": "Rules"
     },
     "https://learn.chatgpt.com/docs/agent-configuration/subagents.md": {
-      "sha256": "9762b21ebd9fad902a1acbc9fb633fc8955b17ed71a333bbd0eb93b398e9ba70",
+      "sha256": "75af035bccd54ac5a3b1d8c2a901c1ecc179fdfddf462eac60ea1cbe886b1ecc",
       "chunks": 16,
       "title": "Subagents"
     },
@@ -112,18 +112,18 @@
       "title": "Customization"
     },
     "https://learn.chatgpt.com/docs/extend/mcp.md": {
-      "sha256": "19bc4363ef01fd1e3f14e04e1c10547e23231a9bf623c473ed1c1c0713acb40b",
+      "sha256": "c12bdead38aaa3000366e7ca0b1faba510a39f27859300ceb6e93e9f1d42ddac",
       "chunks": 15,
       "title": "Model Context Protocol"
     },
     "https://learn.chatgpt.com/docs/hooks.md": {
-      "sha256": "f42e9685f5f0ef56245d496a7ae273fea2ab58e76d2de5890754fdb3c5d41d0e",
+      "sha256": "98cbdbdc532c89e0591d2a073bea958bddcf2b102d1f666da30c4ef3028e4838",
       "chunks": 37,
       "title": "Hooks"
     },
     "https://learn.chatgpt.com/docs/plugins.md": {
-      "sha256": "3971019f0afb259f684ed5ceceb2e323d7d99d0a4a26ae56073fd5de9a450008",
-      "chunks": 14,
+      "sha256": "5aaa572501e620d3efca2646fc3f64e11645e5db272d113d31109bfe71b036ca",
+      "chunks": 15,
       "title": "Plugins"
     },
     "https://modelcontextprotocol.io/docs/2026-07-28/develop/build-client.md": {
