@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-10-02",
+  "indexed_at": "2026-10-03",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "4563f9c3d1eddcd1032753cbe04f1e8914c34352c7b8c6aeeeab19b8009f04a3",
@@ -7,22 +7,22 @@
       "title": "Extend Claude Code"
     },
     "https://code.claude.com/docs/en/hooks-guide.md": {
-      "sha256": "55d1c53f6eb3fadb69973706e159b66c5f8f08a661a28634686fb3dca3d10146",
-      "chunks": 34,
+      "sha256": "345e3b52f58e553f8883e54b6e4ffcae7944b67354fcdec44bca3b455f31e494",
+      "chunks": 33,
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "1a8547a88a50afa68c3c158829e0b87352ce279084d4e904878f7d49f04b7bdc",
-      "chunks": 119,
+      "sha256": "d61c57e0c2a7180e2511fe951cb9827d841f1620aa319724c76bea2b258cafae",
+      "chunks": 118,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "0eaf268f1444d32ab02be86e9df603bda3d931ee0f168066a7e275b356d0ebba",
-      "chunks": 71,
+      "sha256": "2a7894125a9a122fdbc66e7d5cff69f2caee8855b719b395236dae13d6d08063",
+      "chunks": 72,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "8fb0d79586b63052821d0167aff1931937cb695a7048fb5caef57a9e0b2f5bfc",
+      "sha256": "efd721c84b2cab4addbc03d1d273d0b789b63b5c60256611eaf5358eaf38b93c",
       "chunks": 36,
       "title": "How Claude remembers your project"
     },
@@ -32,13 +32,13 @@
       "title": "Create a Claude Code plugin"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "36871d5cf482f54fe66d76052e97df162622153ee828e82577ee63778360fe7b",
-      "chunks": 54,
+      "sha256": "314d6acd791f6a3d775948ba53c62cfc98f5c21173dca5d9c03d18a6723b2b8e",
+      "chunks": 55,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "255d66227282712920e1dae78a239af087a46d50c81d637b9e06d3601e3d7233",
-      "chunks": 54,
+      "sha256": "c020a6b7355c9153705c3ef982db26c1bdc408916e0d4b0054c9a6bad90945fe",
+      "chunks": 53,
       "title": "Create custom subagents"
     },
     "https://cursor.com/docs/agent/prompting.md": {
