@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2026-10-08",
+  "indexed_at": "2026-10-09",
   "documents": {
     "https://code.claude.com/docs/en/features-overview.md": {
       "sha256": "2507de47e33f1ff675824c0bc76affdfd757d15752db789af76090af5e89d665",
@@ -12,18 +12,18 @@
       "title": "Automate actions with hooks"
     },
     "https://code.claude.com/docs/en/hooks.md": {
-      "sha256": "bd725e7a470af02756e1fa4da1c8c6c1351d38f235ca9409e73e950b00e1d0f6",
-      "chunks": 119,
+      "sha256": "73415f7bbd1e18773860dfedb05cc5050eefb95f2a55b2e9b9c557fa6f8ed7a4",
+      "chunks": 122,
       "title": "Hooks reference"
     },
     "https://code.claude.com/docs/en/mcp.md": {
-      "sha256": "1f1be191a367bfbed3457bd60f920f38531212c20f5b66a6d45c616677cd30a4",
+      "sha256": "b2d3e670d036a75d1ffed3fa99f00fc780fca78147ffb87aab06a2cda349ad44",
       "chunks": 72,
       "title": "Connect Claude Code to tools via MCP"
     },
     "https://code.claude.com/docs/en/memory.md": {
-      "sha256": "25c92b8bb9652661fc4834addd9cc6c1deb541188e17b3bda146e0d8f33d9193",
-      "chunks": 37,
+      "sha256": "cfad6fb64f3094506dd760b5a855e27714ce0c47b24279dcd362a5886ec7f8c5",
+      "chunks": 36,
       "title": "How Claude remembers your project"
     },
     "https://code.claude.com/docs/en/plugins/create.md": {
@@ -32,13 +32,13 @@
       "title": "Create a Claude Code plugin"
     },
     "https://code.claude.com/docs/en/skills.md": {
-      "sha256": "92b3ff6687431b2b51dfa408051bd874edb9fa3d8ac1baea17bc884bfd538b07",
+      "sha256": "a648c2ee6f58d0f9edba21e757efea0009e6858c15756e4f360a8f58ebc07ca3",
       "chunks": 56,
       "title": "Extend Claude with skills"
     },
     "https://code.claude.com/docs/en/sub-agents.md": {
-      "sha256": "6df90cd17c32a20105fdab1b42629c64d17fedbc2d4f97085d8442520d10898d",
-      "chunks": 53,
+      "sha256": "d67d6f81bb9f3c4d4321a555f5c80a6d66c26f003c6ac7b915c689e5d1b74fc9",
+      "chunks": 54,
       "title": "Create custom subagents"
     },
     "https://cursor.com/docs/agent/prompting.md": {
